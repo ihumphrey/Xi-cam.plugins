@@ -6,6 +6,12 @@ try:
 
 
     class DataSourceListModel(QAbstractListModel):
+        """
+        Represents the data model for a data resource.
+
+        #TODO how does a data_source_list_model keep its rowCount, columnCount,
+        #TODOcont with the data_resource?
+        """
 
         def __init__(self, dataresource):
             super(DataSourceListModel, self).__init__()
@@ -41,6 +47,18 @@ except ImportError:
 
 
 class DataResourcePlugin(IPlugin):
+    """
+    Interface to a data resource.
+
+    Attributes
+    ----------
+    config
+        Keyword arguments to define access to the data resource.
+    flags : Dict, optional
+        Defines flags to set on the data data resource. By default, if no flags
+        are provided, flags are set to {'isFlat': True, 'canPush': False}.
+    """
+
     from xicam.gui.widgets.dataresourcebrowser import DataResourceList, DataBrowser
     model = DataSourceListModel
     view = DataResourceList
@@ -66,9 +84,35 @@ class DataResourcePlugin(IPlugin):
         # self.uri=''
 
     def pushData(self, *args, **kwargs):
+        """
+        Push data to the data resource.
+
+        Parameters
+        ----------
+        args
+            TODO
+        kwargs
+            TODO
+
+        Returns
+        -------
+
+        """
         raise NotImplementedError
 
     def dataChanged(self, topleft=None, bottomright=None):
+        """
+        TODO brief
+
+        When wrapping this plugin with a QAbstractItemModel, this method
+        overrides a signal that is emitted when a data item changes.
+
+        Parameters
+        ----------
+        topleft : QModelIndex, optional
+        bottomright : QModelIndex, optional
+
+        """
         if self.model:
             self.model.dataChanged.emit(topleft, bottomright)
 
@@ -76,15 +120,53 @@ class DataResourcePlugin(IPlugin):
         raise NotImplementedError
 
     def rowCount(self, index=None):
+        # When index is provided (QModelIndex), gets the number of rows at the
+        # passed index (number of children at the index)
         raise NotImplementedError
 
     def data(self, index, role):
+        """
+
+        Parameters
+        ----------
+        index
+        role
+
+        Returns
+        -------
+
+        """
         raise NotImplementedError
 
     def headerData(self, column, orientation, role):
+        """
+
+        Parameters
+        ----------
+        column
+        orientation
+        role
+
+        Returns
+        -------
+
+        """
         raise NotImplementedError
 
     def index(self, row, column, parent):
+        """
+
+        Parameters
+        ----------
+        row : int
+        column : int
+        parent : Union[QModelIndex, None]
+
+        Returns
+        -------
+            QModelIndex
+
+        """
         raise NotImplementedError
 
     def parent(self, index):

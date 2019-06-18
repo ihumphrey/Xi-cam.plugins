@@ -87,10 +87,16 @@ class GUILayout(object):
     rightbottom : Union[QWidget, PanelState], optional
         The bottom-right widget
 
-    Notes
-    -----
-    For an example of how this class can be used, see the xicam.gui
-    XicamMainWindow class.
+    Examples
+    --------
+    >>> from xicam.core.execution.workflow import Workflow
+    >>> from xicam.gui.widgets.tabview import TabView
+    >>> from xicam.gui.widgets.linearworkfloweditor import WorkflowEditor
+    >>>
+    >>>
+    >>> # set up your workflow(s)
+    >>> # set up your stage(s)
+    >>> # set up your center widget
 
     """
 
