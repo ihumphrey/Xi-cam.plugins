@@ -3,9 +3,8 @@ from yapsy.IPlugin import IPlugin
 from qtpy.QtWidgets import QListView, QWidget, QVBoxLayout
 from qtpy.QtCore import Signal, QAbstractItemModel, QModelIndex, Qt, QObject
 from intake.catalog.base import Catalog
-from intake_bluesky.core import BlueskyRun
 
-from intake_bluesky.in_memory import SafeLocalCatalogEntry
+# from intake_bluesky.in_memory import SafeLocalCatalogEntry
 
 
 class CatalogModel(QAbstractItemModel):
@@ -67,9 +66,10 @@ class CatalogModel(QAbstractItemModel):
 
 
 class CatalogController(QWidget):
-    sigOpen = Signal(SafeLocalCatalogEntry)
+    # TODO: Make a desicion what we want these signal objects to be
+    sigOpen = Signal(object)
     # TODO: Make sure these are emitted / connected
-    sigPreview = Signal(SafeLocalCatalogEntry)
+    sigPreview = Signal(object)
 
    
     sigOpenPath = Signal(str)
