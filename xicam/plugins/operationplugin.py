@@ -3,7 +3,8 @@ import inspect
 import weakref
 from pyqtgraph.parametertree.Parameter import Parameter, PARAM_TYPES
 from functools import partial
-from typing import Tuple
+from typing import Tuple, Dict, Type
+from collections import OrderedDict
 
 
 class OperationPlugin:
@@ -30,11 +31,17 @@ class OperationPlugin:
         filled_kwargs.update(kwargs)
         return self._func(**filled_kwargs)
 
-    @staticmethod
-    def from_ProcessingPlugin(processingplugin):
-        func = lambda: processingplugin.evaluate(**processingplugin.inputs)
-        op = OperationPlugin(func)
-        return op
+    @property
+    def input_types(self) -> 'OrderedDict[str, Type]':
+        signature = inspect.signature(self._func)
+        input_type_map = signature.parameters
+        return input_type_map
+
+    @property
+    def output_types(self) -> 'OrderedDict[str, Type]':
+        signature = inspect.signature(self._func)
+        output_type_map = OrderedDict(zip(self.output_names, signature.return_annotation))
+        return output_type_map
 
     @property
     def input_names(self):
@@ -68,7 +75,7 @@ def as_parameter(operation: OperationPlugin):
                                       name] if name in operation.filled_values else parameter.default,
                                   default=parameter.default,
                                   limits=operation.limits[name],
-                                  type=getattr(input.type,
+                                  type=getattr(operation.input_types[name],
                                                '__name__',
                                                None),
                                   units=operation.units['name'],
@@ -77,12 +84,13 @@ def as_parameter(operation: OperationPlugin):
                                   visible=operation.visible['name'],
                                   **operation.opts['name'])
             parameter_dicts.append(parameter_dict)
-        elif getattr(input.type, "__name__", None) == "Enum":
+        elif getattr(operation.input_types[name], "__name__", None) == "Enum":
             parameter_dict = Parameter.create(
                 name=name,
-                value=getattr(input, "value", input.default) or "---",
-                values=input.limits or ["---"],
-                default=input.default,
+                value=operation.filled_values[
+                    name] if name in operation.filled_values else parameter.default,
+                values=operation.limits[name] or ["---"],
+                default=parameter.default,
                 type="list",
             )
             parameter_dicts.append(parameter_dict)
@@ -128,14 +136,8 @@ def limits(arg_name, limit):
 
     return decorator
 
-# There shouldn't be more than one way to do things, let's not provide default decorator
-# def default(arg_name, value):
-#     def decorator(func):
-#         index = func.func_code.co_varnames.index(arg_name)
-#         func.func_defaults[index] = value
-#     return decorator
 
-def plothint(*args, **kwargs):
+def plot_hint(*args, **kwargs):
     def decorator(func):
         if not hasattr(func, '_hints'):
             func._hints = []
