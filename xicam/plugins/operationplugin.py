@@ -1,33 +1,131 @@
 # from .hints import PlotHint
 import inspect
+import weakref
+from pyqtgraph.parametertree.Parameter import Parameter, PARAM_TYPES
+from functools import partial
+from typing import Tuple
 
 
-class OperationPlugin():
-    def __init__(self, func):
+class OperationPlugin:
+    def __init__(self, func, filled_values=None, output_names: Tuple[str] = None, limits: dict = None,
+                 fixed: dict = None, fixable: dict = None, visible: dict = None, opts: dict = None, units: dict = None):
         self._func = func
-        self._output_names = tuple()
+        self.name = getattr(func, 'name', getattr(func, '__name__', None))
+        if self.name is None:
+            raise NameError('The provided operation is unnamed.')
+        self.output_names = output_names or getattr(func, '_output_names', tuple())
 
-    def __call__(self, *args, **kwargs):
-        return self._func(*args, **kwargs)
+        self.disabled = False
+        self.filled_values = filled_values or {}
+        self.limits = limits or getattr(func, '_limits', {})
+        self.units = units or getattr(func, '_units', {})
+        self.fixed = fixed or {}
+        self.fixable = fixable or {}
+        self.visible = visible or {}
+        self.opts = opts or {}
+        self._inbound_links = []  # [(weakref(operation), output_name, input_name), ...]
 
-# def set_or_init(func, attribute_name, value, default):
-#     attr = getattr(func, attribute_name, default)
-#     attr[attribute_name]
+    def __call__(self, **kwargs):
+        filled_kwargs = self.filled_values.copy()
+        filled_kwargs.update(kwargs)
+        return self._func(**filled_kwargs)
+
+    @staticmethod
+    def from_ProcessingPlugin(processingplugin):
+        func = lambda: processingplugin.evaluate(**processingplugin.inputs)
+        op = OperationPlugin(func)
+        return op
+
+    @property
+    def input_names(self):
+        return tuple(inspect.signature(self._func).parameters.keys())
+
+    def link(self, output_name, input_name, output_operation):
+        if output_name not in output_operation.output_names:
+            raise NameError(
+                f"An output named \"{output_name}\" could not be found in the sender operation, {output_operation.name}")
+        elif input_name not in self.input_names:
+            raise NameError(
+                f"An input named \"{input_name}\" could not be found in the receiver operation, {self.name}")
+
+        self._inbound_links.append((weakref.ref(output_operation), output_name, input_name))
+
+    def unlink(self, output_name, input_name, output_operation):
+        for link_weakref, link_output_name, link_input_name in self._inbound_links:
+            if (link_weakref(), link_output_name, link_input_name) == (output_operation, output_name, input_name):
+                self._inbound_links.remove((link_weakref, link_output_name, link_input_name))
+
+    def __reduce__(self):
+        return OperationPlugin, (self._func, self.filled_values, self.output_names)
 
 
-def input_only(arg_name):
+def as_parameter(operation: OperationPlugin):
+    parameter_dicts = []
+    for name, parameter in inspect.signature(operation._func).parameters.items():
+        if getattr(parameter.annotation, '__name__', None) in PARAM_TYPES:
+            parameter_dict = dict(name=name,
+                                  value=operation.filled_values[
+                                      name] if name in operation.filled_values else parameter.default,
+                                  default=parameter.default,
+                                  limits=operation.limits[name],
+                                  type=getattr(input.type,
+                                               '__name__',
+                                               None),
+                                  units=operation.units['name'],
+                                  fixed=operation.fixed['name'],
+                                  fixable=operation.fixable['name'],
+                                  visible=operation.visible['name'],
+                                  **operation.opts['name'])
+            parameter_dicts.append(parameter_dict)
+        elif getattr(input.type, "__name__", None) == "Enum":
+            parameter_dict = Parameter.create(
+                name=name,
+                value=getattr(input, "value", input.default) or "---",
+                values=input.limits or ["---"],
+                default=input.default,
+                type="list",
+            )
+            parameter_dicts.append(parameter_dict)
+
+
+def _quick_set(func, attr_name, key, value, init):
+    if not hasattr(func, attr_name):
+        setattr(func, attr_name, init)
+    getattr(func, attr_name)[key] = value
+
+
+def units(arg_name, unit):
     def decorator(func):
-        accepts_output = getattr(func, '_accepts_output', {})
-        accepts_output[arg_name] = False
-        func._accepts_output = accepts_output
+        _quick_set(func, '_units', arg_name, unit, {})
+
     return decorator
 
 
-def output_only(arg_name):
+def fixed(arg_name, fix=True):
     def decorator(func):
-        accepts_input = getattr(func, '_accepts_input', {})
-        accepts_input[arg_name] = False
-        func._accepts_input = accepts_input
+        _quick_set(func, '_fixed', arg_name, fix, {})
+
+    return decorator
+
+
+def input_only(arg_name, value=True):
+    def decorator(func):
+        _quick_set(func, '_accepts_output', arg_name, not value, {})
+
+    return decorator
+
+
+def output_only(arg_name, value=True):
+    def decorator(func):
+        _quick_set(func, '_accepts_input', arg_name, not value, {})
+
+    return decorator
+
+
+def limits(arg_name, limit):
+    def decorator(func):
+        _quick_set(func, '_limits', arg_name, limit, {})
+
     return decorator
 
 # There shouldn't be more than one way to do things, let's not provide default decorator
@@ -37,14 +135,12 @@ def output_only(arg_name):
 #         func.func_defaults[index] = value
 #     return decorator
 
-
-def dtype(argname, type):
-    ...
-
-
 def plothint(*args, **kwargs):
     def decorator(func):
+        if not hasattr(func, '_hints'):
+            func._hints = []
         func._hints.append(PlotHint(*args, **kwargs))
+
     return decorator
 
 
@@ -52,32 +148,12 @@ def output_names(*names):
     def decorator(func):
         func._output_names = names
         return func
+
     return decorator
 
 
-def output_shape(name, shape):
+def output_shape(arg_name, shape):
     def decorator(func):
-        func._output_shape[name]
+        _quick_set(func, '_output_shape', arg_name, shape, {})
 
-
-def test_output_names():
-    import numpy
-    @output_names('sum')
-    def sum(a, b):
-        return numpy.sum(a, b)
-
-    assert sum._output_names == ('sum',)
-
-
-def test_common_interface():
-    def sum(a, b):
-        return numpy.sum(a, b)
-
-    op = OperationPlugin(sum)
-
-    assert op.inputs ==
-
-
-if __name__ == '__main__':
-    test_output_names()
-    test_input_names()
+    return decorator

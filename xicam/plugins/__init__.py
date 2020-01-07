@@ -19,6 +19,7 @@ from .datahandlerplugin import DataHandlerPlugin
 from .catalogplugin import CatalogPlugin
 from .guiplugin import GUIPlugin, GUILayout
 from .processingplugin import ProcessingPlugin, EZProcessingPlugin, Input, Output, InOut, InputOutput
+from .operationplugin import OperationPlugin
 from .settingsplugin import SettingsPlugin, ParameterSettingsPlugin
 from .dataresourceplugin import DataResourcePlugin
 from .controllerplugin import ControllerPlugin
@@ -83,6 +84,7 @@ class XicamPluginManager(PluginManager):
             "CatalogPlugin": CatalogPlugin,
             "ProcessingPlugin": ProcessingPlugin,
             "Fittable1DModelPlugin": Fittable1DModelPlugin,
+            "OperationPlugin": OperationPlugin,
         }
 
         # If xicam.gui is not loaded (running headless), don't load GUIPlugins or WidgetPlugins
