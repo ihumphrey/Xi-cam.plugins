@@ -53,6 +53,12 @@ class PlotHint(Hint):
         self.yLog = yLog
         self.labels = labels
 
+    def init_canvas(self, addLegend=False, **kwargs):
+        canvas = super(PlotHint, self).init_canvas(**kwargs)
+        if addLegend:
+            canvas.addLegend(offset=(-1, 1))
+        return canvas
+
     @property
     def name(self):
         if not self._name:
@@ -68,10 +74,28 @@ class PlotHint(Hint):
         plotItem = canvas.plotItem
         plotItem.setLabels(**(self.labels or {}))
         plotItem.setLogMode(x=self.xLog, y=self.yLog)
-        self.item = canvas.plot(self.x, self.y, **self.kwargs)
+        if self.kwargs.get("name"):
+            self.item = canvas.plot(self.x, self.y, **self.kwargs)
+        else:
+            self.item = canvas.plot(self.x, self.y, name=self._name, **self.kwargs)
         self.canvas = canvas
+        # legend = self.canvas.plotItem.legend
+        # if legend:
+        #     legend.addItem(self.item, self._name)
 
     def remove(self):
+        legend = self.canvas.plotItem.legend
+        if legend:
+            # Don't rely on pg.LegendItem.removeItem, as it uses str comparison (instead of refs) to remove!
+            # legend.removeItem(self.name)
+            for sample, label in legend.items:
+                if sample.item is self.item:
+                    legend.items.remove((sample, label))
+                    legend.layout.removeItem(sample)
+                    sample.close()
+                    legend.layout.removeItem(sample)
+                    label.close()
+                    legend.updateSize()
         self.canvas.removeItem(self.item)
         self.item = None
         if not list(filter(lambda item: isinstance(item, pg.PlotCurveItem), self.canvas.items())):
@@ -178,7 +202,7 @@ class ImageHint(Hint):
         self.enabled = False
         self.canvas = None
 
-    def init_canvas(self):
+    def init_canvas(self, **kwargs):
         self.canvas = self.canvas_cls(view=pg.PlotItem(labels=dict(left=self.xlabel, bottom=self.ylabel)))
         self.canvas.view.invertY(self.invertY)
         return self.canvas
@@ -213,6 +237,12 @@ class CoPlotHint(Hint):
         self.plothints = [*plothints]  # type: List[PlotHint]
         self.kwargs = kwargs
         self.canvas = None
+
+    def init_canvas(self, addLegend=False, **kwargs):
+        canvas = super(CoPlotHint, self).init_canvas(**kwargs)
+        if addLegend:
+            canvas.addLegend(offset=(-1, 1))
+        return canvas
 
     @property
     def name(self):
