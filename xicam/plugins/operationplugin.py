@@ -24,7 +24,6 @@ class OperationPlugin:
         self.fixable = fixable or {}
         self.visible = visible or {}
         self.opts = opts or {}
-        self._inbound_links = []  # [(weakref(operation), output_name, input_name), ...]
 
     def __call__(self, **kwargs):
         filled_kwargs = self.filled_values.copy()
@@ -46,16 +45,6 @@ class OperationPlugin:
     @property
     def input_names(self):
         return tuple(inspect.signature(self._func).parameters.keys())
-
-    def link(self, output_name, input_name, output_operation):
-        if output_name not in output_operation.output_names:
-            raise NameError(
-                f"An output named \"{output_name}\" could not be found in the sender operation, {output_operation.name}")
-        elif input_name not in self.input_names:
-            raise NameError(
-                f"An input named \"{input_name}\" could not be found in the receiver operation, {self.name}")
-
-        self._inbound_links.append((weakref.ref(output_operation), output_name, input_name))
 
     def unlink(self, output_name, input_name, output_operation):
         for link_weakref, link_output_name, link_input_name in self._inbound_links:

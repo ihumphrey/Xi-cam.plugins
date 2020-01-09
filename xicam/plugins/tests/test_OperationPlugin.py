@@ -41,9 +41,9 @@ def test_workflow():
 
     wf = Workflow()
 
-    wf.addOperation(square)
+    wf.add_operation(square)
     # sq_op2 = wf.addOperation(square)
-    wf.addOperation(my_sum)
-    my_sum.link(output_name='square', input_name='a', output_operation=square)
+    wf.add_operation(my_sum)
+    wf.add_link(square, my_sum, 'square', 'a')
 
     assert wf.execute_synchronous(executor=executor) == [{'sum': 12}]
