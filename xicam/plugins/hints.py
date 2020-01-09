@@ -94,9 +94,9 @@ class PlotHint(Hint):
                 color = (float(i) / numItems * 255,
                          (1 - float(i) / numItems) * 255,
                          255)
-                plotItem.items[i].setPen(color, style=style)
+                plotItem.items[i].setPen(color, **self.kwargs)
         else:
-            self.item.setPen(color, style=style)
+            self.item.setPen(color, **self.kwargs)
 
     def remove(self):
         legend = self.canvas.plotItem.legend
