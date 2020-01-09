@@ -11,11 +11,6 @@ from xicam.gui.widgets.dynimageview import DynImageView
 from xicam.gui.widgets.plotwidgetmixins import CurveLabels
 
 
-class BetterPlotWidget(CurveLabels):
-    def __init__(self, *args, **kwargs):
-        super(CurveLabels, self).__init__(*args, **kwargs)
-
-
 class Hint(object):
     canvas_cls = None
 
