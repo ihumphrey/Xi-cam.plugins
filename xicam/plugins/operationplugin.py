@@ -52,11 +52,6 @@ class OperationPlugin:
     def input_names(self):
         return tuple(inspect.signature(self._func).parameters.keys())
 
-    def unlink(self, output_name, input_name, output_operation):
-        for link_weakref, link_output_name, link_input_name in self._inbound_links:
-            if (link_weakref(), link_output_name, link_input_name) == (output_operation, output_name, input_name):
-                self._inbound_links.remove((link_weakref, link_output_name, link_input_name))
-
     def __reduce__(self):
         return OperationPlugin, (self._func, self.filled_values, self.output_names)
 
