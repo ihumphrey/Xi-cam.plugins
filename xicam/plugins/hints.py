@@ -8,6 +8,12 @@ import pyqtgraph as pg
 from qtpy.QtGui import QTransform
 
 from xicam.gui.widgets.dynimageview import DynImageView
+from xicam.gui.widgets.plotwidgetmixins import CurveLabels
+
+
+class BetterPlotWidget(CurveLabels):
+    def __init__(self, *args, **kwargs):
+        super(CurveLabels, self).__init__(*args, **kwargs)
 
 
 class Hint(object):
@@ -38,7 +44,7 @@ class Hint(object):
 
 
 class PlotHint(Hint):
-    canvas_cls = pg.PlotWidget
+    canvas_cls = CurveLabels
 
     def __init__(self, x: np.ndarray, y: np.ndarray, xLog: bool = False, yLog: bool = False, labels=None, **kwargs):
         super(PlotHint, self).__init__()
@@ -70,7 +76,7 @@ class PlotHint(Hint):
                 self._name = "Plot"
         return self._name
 
-    def visualize(self, canvas):
+    def visualize(self, canvas, color=None):
         plotItem = canvas.plotItem
         plotItem.setLabels(**(self.labels or {}))
         plotItem.setLogMode(x=self.xLog, y=self.yLog)
@@ -79,9 +85,18 @@ class PlotHint(Hint):
         else:
             self.item = canvas.plot(self.x, self.y, name=self._name, **self.kwargs)
         self.canvas = canvas
-        # legend = self.canvas.plotItem.legend
-        # if legend:
-        #     legend.addItem(self.item, self._name)
+
+        style = self.kwargs.get("style")
+        # Update colors according to number of plot data items in the canvas
+        if not color:
+            numItems = len(plotItem.items)
+            for i in range(numItems):
+                color = (float(i) / numItems * 255,
+                         (1 - float(i) / numItems) * 255,
+                         255)
+                plotItem.items[i].setPen(color, style=style)
+        else:
+            self.item.setPen(color, style=style)
 
     def remove(self):
         legend = self.canvas.plotItem.legend
@@ -228,7 +243,8 @@ class ImageHint(Hint):
 
 
 class CoPlotHint(Hint):
-    canvas_cls = pg.PlotWidget
+    canvas_cls = CurveLabels
+    canvas_map = dict()
 
     def __init__(self, *plothints: List[PlotHint], **kwargs):
         if kwargs.get("name"):
@@ -240,6 +256,7 @@ class CoPlotHint(Hint):
 
     def init_canvas(self, addLegend=False, **kwargs):
         canvas = super(CoPlotHint, self).init_canvas(**kwargs)
+        self.canvas_map[canvas] = 0
         if addLegend:
             canvas.addLegend(offset=(-1, 1))
         return canvas
@@ -253,10 +270,18 @@ class CoPlotHint(Hint):
     def remove(self):
         for plothint in self.plothints:
             plothint.remove()
+        self.canvas_map[self.canvas] -= 1
 
     def visualize(self, canvas):
         self.canvas = canvas
+        self.canvas_map[self.canvas] += 1
+        numItems = self.canvas_map[self.canvas]
+        # Update colors according to number of co-plot hints in the same canvas
+        for i in range(numItems):
+            color = (float(i) / numItems * 255,
+                     (1 - float(i) / numItems) * 255,
+                     255)
         for plothint in self.plothints:
             # TODO: should this rely on the contained plothints' visualize? or should we directly plot on the canvas?
-            plothint.visualize(self.canvas)
+            plothint.visualize(self.canvas, color=color)
             # self.canvas.plot(plothint.x, plothint.y, **{**plothint.kwargs, **self.kwargs})
