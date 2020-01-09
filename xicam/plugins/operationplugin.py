@@ -38,8 +38,14 @@ class OperationPlugin:
 
     @property
     def output_types(self) -> 'OrderedDict[str, Type]':
-        signature = inspect.signature(self._func)
-        output_type_map = OrderedDict(zip(self.output_names, signature.return_annotation))
+        return_annotation = inspect.signature(self._func).return_annotation
+        if not return_annotation or return_annotation is inspect._empty:
+            return_annotation = tuple()
+
+        if type(return_annotation) is not tuple:
+            return_annotation = (return_annotation,)
+
+        output_type_map = OrderedDict(zip(self.output_names, return_annotation))
         return output_type_map
 
     @property
