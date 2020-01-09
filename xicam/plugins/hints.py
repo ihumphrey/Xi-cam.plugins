@@ -108,7 +108,7 @@ class PlotHint(Hint):
                     legend.items.remove((sample, label))
                     legend.layout.removeItem(sample)
                     sample.close()
-                    legend.layout.removeItem(sample)
+                    legend.layout.removeItem(label)
                     label.close()
                     legend.updateSize()
         self.canvas.removeItem(self.item)
