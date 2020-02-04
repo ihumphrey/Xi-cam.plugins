@@ -6,6 +6,8 @@ from functools import partial
 from typing import Tuple, Dict, Type
 from collections import OrderedDict
 
+from .hints import PlotHint
+
 
 # TODO: make it so order of OperationPlugin decorator doesn't matter
 
