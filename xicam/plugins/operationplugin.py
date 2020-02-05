@@ -110,6 +110,7 @@ def _quick_set(func, attr_name, key, value, init):
 def units(arg_name, unit):
     def decorator(func):
         _quick_set(func, '_units', arg_name, unit, {})
+        return func
 
     return decorator
 
@@ -117,6 +118,7 @@ def units(arg_name, unit):
 def fixed(arg_name, fix=True):
     def decorator(func):
         _quick_set(func, '_fixed', arg_name, fix, {})
+        return func
 
     return decorator
 
@@ -124,6 +126,7 @@ def fixed(arg_name, fix=True):
 def input_only(arg_name, value=True):
     def decorator(func):
         _quick_set(func, '_accepts_output', arg_name, not value, {})
+        return func
 
     return decorator
 
@@ -131,6 +134,7 @@ def input_only(arg_name, value=True):
 def output_only(arg_name, value=True):
     def decorator(func):
         _quick_set(func, '_accepts_input', arg_name, not value, {})
+        return func
 
     return decorator
 
@@ -138,6 +142,7 @@ def output_only(arg_name, value=True):
 def limits(arg_name, limit):
     def decorator(func):
         _quick_set(func, '_limits', arg_name, limit, {})
+        return func
 
     return decorator
 
@@ -147,6 +152,7 @@ def plot_hint(*args, **kwargs):
         if not hasattr(func, '_hints'):
             func._hints = []
         func._hints.append(PlotHint(*args, **kwargs))
+        return func
 
     return decorator
 
@@ -162,5 +168,6 @@ def output_names(*names):
 def output_shape(arg_name, shape):
     def decorator(func):
         _quick_set(func, '_output_shape', arg_name, shape, {})
+        return func
 
     return decorator
