@@ -309,8 +309,26 @@ class XicamPluginManager(PluginManager):
 
         return self.processed_plugins
 
-    def load_entry_point_plugins(self):
-        for category_name, plugins in self.category_mapping.items():
+    def load_entry_point_plugins(self, categories=None):
+        """Load plugins defined in entry points.
+
+        Loads all the xicam.plugins entry points.
+        By using the `categories` parameter, select categories can be loaded, instead of all categories.
+        For example, specifying `categories` as a list containing "SettingsPlugins",
+        only xicam.plugins.SettingsPlugins entry points will be loaded.
+
+        Parameters
+        ----------
+        categories : List
+            Categories of entry point plugins to load (default is None, which loads all categories).
+        """
+        custom_category_mapping = self.category_mapping
+        if categories:
+            # {k: adict[k] for k in new_keys if k in adict}
+            custom_category_mapping = {
+                k: self.category_mapping[k] for k in categories if k in self.category_mapping
+            }
+        for category_name, plugins in custom_category_mapping.items():
             group = entrypoints.get_group_named(f'xicam.plugins.{category_name}')
             group_all = entrypoints.get_group_all(f'xicam.plugins.{category_name}')
 
