@@ -54,14 +54,6 @@ class TestFixed:
         assert True
 
 
-# TODO: What is @input_only supposed to do?
-def test_input_only():
-    @input_only('a')
-    def func(a):
-        return
-    assert not func._accepts_output['a']
-
-
 def test_limits():
     @limits('a', [0.0, 1.0])
     def func(a):
@@ -76,14 +68,6 @@ def test_output_names():
         return numpy.sum(a, b)
 
     assert sum._output_names == ('sum',)
-
-
-# TODO: What is ouput_only supposed to do?
-def test_output_only():
-    @output_only('a')
-    def func(a, b, c):
-        return
-    assert not func._accepts_input['a']
 
 
 def test_output_shape():
