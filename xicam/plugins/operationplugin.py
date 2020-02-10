@@ -213,36 +213,6 @@ def fixed(arg_name, fix=True):
     return decorator
 
 
-def input_only(arg_name, value=True):
-    """TODO
-
-    Parameters
-    ----------
-    arg_name
-    value
-    """
-    def decorator(func):
-        _quick_set(func, '_accepts_output', arg_name, not value, {})
-        return func
-
-    return decorator
-
-
-def output_only(arg_name, value=True):
-    """TODO
-
-    Parameters
-    ----------
-    arg_name
-    value
-    """
-    def decorator(func):
-        _quick_set(func, '_accepts_input', arg_name, not value, {})
-        return func
-
-    return decorator
-
-
 def limits(arg_name, limit):
     """Define limits for an input.
 
