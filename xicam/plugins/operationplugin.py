@@ -59,7 +59,7 @@ class OperationPlugin:
             raise NameError('The provided operation is unnamed.')
         self.output_names = output_names or getattr(func, 'output_names', tuple())
 
-        self.disabled = False
+        self.disabled = False  # TODO: does this need a setter for more explicit API?
         self.filled_values = filled_values or {}  # TODO: what is the purpose of filled_values?
         self.limits = limits or getattr(func, 'limits', {})
         self.units = units or getattr(func, 'units', {})
@@ -67,7 +67,7 @@ class OperationPlugin:
         self.fixable = fixable or getattr(func, 'fixable', {})
         self.visible = visible or getattr(func, 'visible', {})
         self.opts = opts or getattr(func, 'opts', {})
-        self.hints = getattr(func, 'hints', [])
+        self.hints = getattr(func, 'hints', [])  # TODO: does hints need an arg
 
     def __call__(self, **kwargs):
         filled_kwargs = self.filled_values.copy()
@@ -159,15 +159,16 @@ class OperationPlugin:
                 if name in self.limits:
                     parameter_dict['limits'] = self.limits[name]
                 parameter_dict['units'] = self.units.get(name)
-                parameter_dict['fixed'] = self.fixed.get(name)
+                parameter_dict['fixed'] = self.fixed.get(name) #  TODO: Does this need a default value
                 parameter_dict['fixable'] = self.fixable.get(name)
-                parameter_dict['visible'] = self.visible.get(name, True)
+                parameter_dict['visible'] = self.visible.get(name, True) # TODO: should we store the defaults at top?
 
                 parameter_dicts.append(parameter_dict)
         return parameter_dicts
 
 
 def _quick_set(func, attr_name, key, value, init):
+    # TODO: does this need to be called initially to provide valid defaults?
     if not hasattr(func, attr_name):
         setattr(func, attr_name, init)
     getattr(func, attr_name)[key] = value
@@ -285,7 +286,41 @@ def output_shape(arg_name, shape):
         N-element tuple representing the shape (dimensions) of the output.
     """
     def decorator(func):
-        _quick_set(func, '_output_shape', arg_name, shape, {})
+        _quick_set(func, 'output_shape', arg_name, shape, {})
         return func
 
+    return decorator
+
+
+def visible(arg_name, is_visible=True):
+    """Set whether an input is visible (shown in GUI) or not.
+
+    Parameters
+    ----------
+    arg_name
+        Name of the input to change visibility for.
+    is_visible
+        Whether or not to make the input visible or not (default is True).
+    """
+    def decorator(func):
+        _quick_set(func, 'visible', arg_name, is_visible, {})
+        return func
+    return decorator
+
+
+def opts(arg_name, options):
+    """Set the opts (pyqtgraph Parameter opts) for `arg_name`.
+
+    TODO: more details
+
+    Parameters
+    ----------
+    arg_name
+        Name of the input to change options for.
+    options
+        Dictionary of options that can be used for the rendering backend (pyqtgraph).
+    """
+    def decorator(func):
+        _quick_set(func, 'opts', arg_name, options, {})
+        return func
     return decorator

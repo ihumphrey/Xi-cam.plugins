@@ -1,6 +1,6 @@
 from xicam.plugins import OperationPlugin
-from xicam.plugins.operationplugin import (fixed, limits, output_names,
-                                           output_shape, plot_hint, units)
+from xicam.plugins.operationplugin import (fixed, limits, opts, output_names,
+                                           output_shape, plot_hint, units, visible)
 
 
 class TestFixed:
@@ -89,6 +89,36 @@ def test_units():
     def func(a):
         return
     assert func._units == {'a': 'mm'}
+
+
+class TestVisible:
+    def test_default(self):
+        # TODO: what should this return?
+        @output_names('z')
+        def func(a):
+            return
+        assert func.visible == {'a': True}  # Expects a default to be set regardless
+        # assert func.vislble == {}         # does not expect any defaults to be set; must be explicit
+
+    def test_true(self):
+        @visible('a', True)
+        def func(a, b)
+            return
+        assert func.visible == {'a': True}
+
+    def test_false(self):
+        @visible('a', False)
+        def func(a, b):
+            return
+        assert func.visible == {'a': False}
+
+
+def test_opts():
+    # TODO: what happens if you pass in an 'invalid' opt? what is an invalid opt?
+    @opts('a', {'invalid pyqtgraph opt?'})
+    def func(a, b):
+        return
+    assert func.opts == {'a', {'invalid pyqtgraph opt?'}}
 
 
 def _test_common_interface():
