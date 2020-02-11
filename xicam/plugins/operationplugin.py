@@ -6,6 +6,8 @@ from functools import partial
 from typing import Tuple, Dict, Type
 from collections import OrderedDict
 
+from xicam.core import msg
+
 from .hints import PlotHint
 
 
@@ -53,6 +55,7 @@ class OperationPlugin:
 
     def __init__(self, func, filled_values=None, output_names: Tuple[str] = None, limits: dict = None,
                  fixed: dict = None, fixable: dict = None, visible: dict = None, opts: dict = None, units: dict = None):
+        print('OperationPlugin')
         self._func = func
         self.name = getattr(func, 'name', getattr(func, '__name__', None))
         if self.name is None:
@@ -173,7 +176,18 @@ def _quick_set(func, attr_name, key, value, init):
     # TODO: does this need to be called initially to provide valid defaults?
     if not hasattr(func, attr_name):
         setattr(func, attr_name, init)
-    getattr(func, attr_name)[key] = value
+
+    # Check if key is an input
+    if key in inspect.signature(func).parameters:
+        getattr(func, attr_name)[key] = value
+
+    #
+    else:
+        # TODO : how do we check for outputs (like hints, output_shape, ...?)
+        msg = f"\"{key}\" is not a parameter defined by the operation \"{func.__name__}\". "
+        msg += f"\"{func.__name__}\" defines the following parameters: "
+        msg += f"{[name for name in inspect.signature(func).parameters]}."
+        raise ValueError(msg)
 
 
 def units(arg_name, unit):
@@ -270,6 +284,7 @@ def output_names(*names):
         Names for the outputs in the operation.
 
     """
+    print('output_names')
     def decorator(func):
         func.output_names = names
         return func
@@ -304,6 +319,7 @@ def visible(arg_name, is_visible=True):
     is_visible
         Whether or not to make the input visible or not (default is True).
     """
+    print('visible')
     def decorator(func):
         _quick_set(func, 'visible', arg_name, is_visible, {})
         return func
