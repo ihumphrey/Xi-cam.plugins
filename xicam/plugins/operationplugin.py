@@ -12,16 +12,30 @@ from .hints import PlotHint
 
 
 class OperationError(Exception):
+    """Base exception for this module."""
     pass
 
 
 class ValidationError(OperationError):
+    """Exception raised for invalid OperationPlugin configurations.
+
+    Attributes
+    ----------
+    operation : OperationPlugin
+        Reference to the operation that failed its validation check.
+    message : str
+        Explanation of the error.
+    """
     def __init__(self, operation, message):
         self.operation = operation
         self.message = message
 
+    # def __repr__(self):
+    #     return f"ValidationError({self.operation!r}, {self.message!r})"
+
     def __str__(self):
-        return f"Validation failed for operation named \"{self.operation.name}\": {self.message}"
+        """Returns a readable string for this exception."""
+        return f"Validation failed for {self.operation}: {self.message}"
 
 
 # TODO: make it so order of OperationPlugin decorator doesn't matter
@@ -122,12 +136,15 @@ class OperationPlugin:
         if invalid_msg:
             raise ValidationError(self, invalid_msg)
         else:
-            msg.logMessage(f"All args for operation \"{self.name}\" are valid.")
+            msg.logMessage(f"All args for {self} are valid.")
 
     def __call__(self, **kwargs):
         filled_kwargs = self.filled_values.copy()
         filled_kwargs.update(kwargs)
         return self._func(**filled_kwargs)
+
+    def __str__(self):
+        return f"OperationPlugin named {self.name}"
 
     @property
     def input_types(self) -> 'OrderedDict[str, Type]':
