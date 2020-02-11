@@ -64,10 +64,10 @@ class OperationPlugin:
         self.limits = limits or getattr(func, '_limits', {})
         self.units = units or getattr(func, '_units', {})
         # TODO should the below all have decorators and the `or {}` replaced with `or getattr(func, '_<attr>', {})?
-        self.fixed = fixed or {}
-        self.fixable = fixable or {}
-        self.visible = visible or {}
-        self.opts = opts or {}
+        self.fixed = fixed or getattr(func, '_fixed', {})
+        self.fixable = fixable or getattr(func, '_fixable', {})
+        self.visible = visible or getattr(func, '_visible', {})
+        self.opts = opts or getattr(func, '_opts', {})
         self.hints = []
 
     def __call__(self, **kwargs):
