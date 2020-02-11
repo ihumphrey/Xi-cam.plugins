@@ -57,18 +57,17 @@ class OperationPlugin:
         self.name = getattr(func, 'name', getattr(func, '__name__', None))
         if self.name is None:
             raise NameError('The provided operation is unnamed.')
-        self.output_names = output_names or getattr(func, '_output_names', tuple())
+        self.output_names = output_names or getattr(func, 'output_names', tuple())
 
         self.disabled = False
         self.filled_values = filled_values or {}  # TODO: what is the purpose of filled_values?
-        self.limits = limits or getattr(func, '_limits', {})
-        self.units = units or getattr(func, '_units', {})
-        # TODO should the below all have decorators and the `or {}` replaced with `or getattr(func, '_<attr>', {})?
-        self.fixed = fixed or getattr(func, '_fixed', {})
-        self.fixable = fixable or getattr(func, '_fixable', {})
-        self.visible = visible or getattr(func, '_visible', {})
-        self.opts = opts or getattr(func, '_opts', {})
-        self.hints = []
+        self.limits = limits or getattr(func, 'limits', {})
+        self.units = units or getattr(func, 'units', {})
+        self.fixed = fixed or getattr(func, 'fixed', {})
+        self.fixable = fixable or getattr(func, 'fixable', {})
+        self.visible = visible or getattr(func, 'visible', {})
+        self.opts = opts or getattr(func, 'opts', {})
+        self.hints = getattr(func, 'hints', [])
 
     def __call__(self, **kwargs):
         filled_kwargs = self.filled_values.copy()
@@ -187,7 +186,7 @@ def units(arg_name, unit):
         Unit of measurement descriptor to use (e.g. "mm").
     """
     def decorator(func):
-        _quick_set(func, '_units', arg_name, unit, {})
+        _quick_set(func, 'units', arg_name, unit, {})
         return func
 
     return decorator
@@ -207,7 +206,7 @@ def fixed(arg_name, fix=True):
         Whether or not to fix `arg_name` (default is True).
     """
     def decorator(func):
-        _quick_set(func, '_fixed', arg_name, fix, {})
+        _quick_set(func, 'fixed', arg_name, fix, {})
         return func
 
     return decorator
@@ -227,7 +226,7 @@ def limits(arg_name, limit):
         A 2-element sequence representing the lower and upper limit.
     """
     def decorator(func):
-        _quick_set(func, '_limits', arg_name, limit, {})
+        _quick_set(func, 'limits', arg_name, limit, {})
         return func
 
     return decorator
@@ -248,9 +247,9 @@ def plot_hint(*args, **kwargs):
     TODO examples may be helpful in these...
     """
     def decorator(func):
-        if not hasattr(func, '_hints'):
-            func._hints = []
-        func._hints.append(PlotHint(*args, **kwargs))
+        if not hasattr(func, 'hints'):
+            func.hints = []
+        func.hints.append(PlotHint(*args, **kwargs))
         return func
 
     return decorator
@@ -269,7 +268,7 @@ def output_names(*names):
 
     """
     def decorator(func):
-        func._output_names = names
+        func.output_names = names
         return func
 
     return decorator
