@@ -121,6 +121,78 @@ def test_opts():
     assert func.opts == {'a': {'invalid pyqtgraph opt?': 'idk'}}
 
 
+def test_as_parameter():
+    @OperationPlugin
+    @fixed('fixed_param')
+    @limits('limits_param', [0, 100])
+    @opts('opts_param', {'opt': 'value'})
+    @output_names('out1, out2')
+    @output_shape('out1', [1])
+    @units('units_param', 'km')
+    @visible('invisible_param', False)
+    def func(fixed_param: int,
+             invisible_param: int,
+             limits_param: int,
+             opts_param: list,
+             units_param: float,
+             unseen_param,
+             default_param: int = 0):
+        return
+
+    expected_as_parameter = [{'default': None,
+                              'fixable': None,
+                              'fixed': True,
+                              'name': 'fixed_param',
+                              'type': 'int',
+                              'units': None,
+                              'value': None,
+                              'visible': True},
+                             {'default': None,
+                              'fixable': None,
+                              'fixed': None,
+                              'name': 'invisible_param',
+                              'type': 'int',
+                              'units': None,
+                              'value': None,
+                              'visible': False},
+                             {'default': None,
+                              'fixable': None,
+                              'fixed': None,
+                              'limits': [0, 100],
+                              'name': 'limits_param',
+                              'type': 'int',
+                              'units': None,
+                              'value': None,
+                              'visible': True},
+                             {'default': None,
+                              'fixable': None,
+                              'fixed': None,
+                              'name': 'opts_param',
+                              'opt': 'value',
+                              'type': 'list',
+                              'units': None,
+                              'value': None,
+                              'visible': True},
+                             {'default': None,
+                              'fixable': None,
+                              'fixed': None,
+                              'name': 'units_param',
+                              'type': 'float',
+                              'units': 'km',
+                              'value': None,
+                              'visible': True},
+                             {'default': 0,
+                              'fixable': None,
+                              'fixed': None,
+                              'name': 'default_param',
+                              'type': 'int',
+                              'units': None,
+                              'value': 0,
+                              'visible': True}]
+
+    assert func.as_parameter() == expected_as_parameter
+
+
 def _test_common_interface():
     import numpy as np
 
