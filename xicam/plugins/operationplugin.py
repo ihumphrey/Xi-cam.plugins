@@ -134,7 +134,7 @@ class OperationPlugin:
                 parameter_dict = dict()
                 parameter_dict.update(self.opts.get(name, {}))
                 parameter_dict['name'] = name
-                parameter_dict['default'] = parameter.default if parameter.default is not inspect._empty else None
+                parameter_dict['default'] = parameter.default if parameter.default is not inspect.Parameter.empty else None
                 parameter_dict['value'] = self.filled_values[
                     name] if name in self.filled_values else parameter_dict['default']
 
