@@ -11,8 +11,20 @@ from xicam.core import msg
 from .hints import PlotHint
 
 
-# TODO: make it so order of OperationPlugin decorator doesn't matter
+class OperationError(Exception):
+    pass
 
+
+class ValidationError(OperationError):
+    def __init__(self, operation, message):
+        self.operation = operation
+        self.message = message
+
+    def __str__(self):
+        return f"Validation failed for operation named \"{self.operation.name}\": {self.message}"
+
+
+# TODO: make it so order of OperationPlugin decorator doesn't matter
 class OperationPlugin:
     """A plugin that can be used to define an operation, which can be used in a Workflow.
 
@@ -108,7 +120,7 @@ class OperationPlugin:
                     invalid_msg += f"\"{arg}\" is not a valid output for \"{name}\". "
 
         if invalid_msg:
-            raise TypeError(f"Validation for operation named \"{self.name}\" failed: " + invalid_msg)
+            raise ValidationError(self, invalid_msg)
         else:
             msg.logMessage(f"All args for operation \"{self.name}\" are valid.")
 
@@ -337,7 +349,7 @@ def output_shape(arg_name, shape: Union[int, Collection[int]]):
     return decorator
 
 
-def visible(arg_name, is_visible):
+def visible(arg_name, is_visible=True):
     """Set whether an input is visible (shown in GUI) or not.
 
     Parameters
