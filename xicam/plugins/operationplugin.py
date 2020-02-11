@@ -145,6 +145,7 @@ class OperationPlugin:
                 parameter_dict['fixed'] = self.fixed.get(name)
                 parameter_dict['fixable'] = self.fixable.get(name)
                 parameter_dict['visible'] = self.visible.get(name, True)
+                parameter_dict.update(self.opts.get(name, {}))
 
                 parameter_dicts.append(parameter_dict)
 
@@ -162,6 +163,7 @@ class OperationPlugin:
                 parameter_dict['fixed'] = self.fixed.get(name) #  TODO: Does this need a default value
                 parameter_dict['fixable'] = self.fixable.get(name)
                 parameter_dict['visible'] = self.visible.get(name, True) # TODO: should we store the defaults at top?
+                parameter_dict.update(self.opts.get(name, {}))
 
                 parameter_dicts.append(parameter_dict)
         return parameter_dicts
