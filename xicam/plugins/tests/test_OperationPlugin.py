@@ -1,6 +1,6 @@
 from xicam.plugins import OperationPlugin
-from xicam.plugins.operationplugin import (fixed, input_only, limits, output_names,
-                                           output_only, output_shape, plot_hint, units)
+from xicam.plugins.operationplugin import (fixed, limits, output_names,
+                                           output_shape, plot_hint, units)
 
 
 class TestFixed:
@@ -79,9 +79,9 @@ def test_output_shape():
     assert func._output_shape == {'out': (10, 10)}
 
 
-def test_plot_hint():
-    print('tlaktj')
-    assert False, 'bnlah'
+# def test_plot_hint():
+#     print('tlaktj')
+#     assert False, 'bnlah'
 
 
 def test_units():
