@@ -3,7 +3,7 @@ import inspect
 import weakref
 from pyqtgraph.parametertree.Parameter import Parameter, PARAM_TYPES
 from functools import partial
-from typing import Tuple, Dict, Type
+from typing import Collection, Dict, List, Tuple, Type, Union
 from collections import OrderedDict
 
 from xicam.core import msg
@@ -53,14 +53,15 @@ class OperationPlugin:
     --------
     """
 
-    def __init__(self, func, filled_values=None, output_names: Tuple[str] = None, limits: dict = None,
-                 fixed: dict = None, fixable: dict = None, visible: dict = None, opts: dict = None, units: dict = None):
-        print('OperationPlugin')
+    def __init__(self, func, filled_values=None, output_names: Tuple[str, ...] = None, limits: dict = None,
+                 fixed: dict = None, fixable: dict = None, visible: dict = None, opts: dict = None, units: dict = None,
+                 output_shape: dict = None):
         self._func = func
         self.name = getattr(func, 'name', getattr(func, '__name__', None))
         if self.name is None:
             raise NameError('The provided operation is unnamed.')
         self.output_names = output_names or getattr(func, 'output_names', tuple())
+        self.output_shape = output_shape or getattr(func, 'output_shape', {})
 
         self.disabled = False  # TODO: does this need a setter for more explicit API?
         self.filled_values = filled_values or {}  # TODO: what is the purpose of filled_values?
@@ -71,6 +72,45 @@ class OperationPlugin:
         self.visible = visible or getattr(func, 'visible', {})
         self.opts = opts or getattr(func, 'opts', {})
         self.hints = getattr(func, 'hints', [])  # TODO: does hints need an arg
+
+        self._validate()
+
+    def _validate(self):
+        invalid_msg = ""
+        # TODO make this an actual property?
+        input_properties = {"fixable": self.fixable,
+                            "fixed": self.fixed,
+                            "limits": self.limits,
+                            "opts": self.opts,
+                            "units": self.units,
+                            "visible": self.visible}
+        # Ensure all the referenced parameters in the operation's state are part of the operation
+        # TODO: this checks if all the properties have default values for each input param. Do we want this?
+        for arg in self.input_names:
+            for name, prop in input_properties.items():
+                if prop and arg not in prop:
+                    pass  # print(f"{name}: {prop}")  # TODO: this passes...
+
+        # Check if there are any input args that are not actually defined in the operation
+        # e.g. 'x' is not a valid input in the case below:
+        # @visible('x')
+        # def func(a): return
+        for name, prop in input_properties.items():
+            for arg in prop.keys():
+                if arg not in self.input_names:
+                    invalid_msg += f"\"{arg}\" is not a valid input for \"{name}\". "
+
+        # Check if there are any output args that are not actually defined in the operation
+        output_properties = {"output_shape": self.output_shape}
+        for name, prop in output_properties.items():
+            for arg in prop.keys():
+                if arg not in self.output_names:
+                    invalid_msg += f"\"{arg}\" is not a valid output for \"{name}\". "
+
+        if invalid_msg:
+            raise TypeError(f"Validation for operation named \"{self.name}\" failed: " + invalid_msg)
+        else:
+            msg.logMessage(f"All args for operation \"{self.name}\" are valid.")
 
     def __call__(self, **kwargs):
         filled_kwargs = self.filled_values.copy()
@@ -88,7 +128,7 @@ class OperationPlugin:
     def output_types(self) -> 'OrderedDict[str, Type]':
         """Returns the types of the outputs for the operation."""
         return_annotation = inspect.signature(self._func).return_annotation
-        if not return_annotation or return_annotation is inspect._empty:
+        if not return_annotation or return_annotation is inspect.Signature.empty:
             return_annotation = tuple()
 
         if type(return_annotation) is not tuple:
@@ -118,11 +158,11 @@ class OperationPlugin:
         Alternative text:
         A list of dictionaries is returned where each dict is a best-effort attempt to represent each input parameter as a pyqtgraph Parameter.
 
-
         Returns
         -------
-        List of dictionaries; each dictionary represents the state of an input parameter
-        (only applies to input parameters that are annotated with type-hinting).
+        parameters : list
+            List of dictionaries; each dictionary represents the state of an input parameter
+            (only applies to input parameters that are annotated with type-hinting).
 
         See Also
         --------
@@ -163,9 +203,9 @@ class OperationPlugin:
                 if name in self.limits:
                     parameter_dict['limits'] = self.limits[name]
                 parameter_dict['units'] = self.units.get(name)
-                parameter_dict['fixed'] = self.fixed.get(name) #  TODO: Does this need a default value
+                parameter_dict['fixed'] = self.fixed.get(name)  # TODO: Does this need a default value
                 parameter_dict['fixable'] = self.fixable.get(name)
-                parameter_dict['visible'] = self.visible.get(name, True) # TODO: should we store the defaults at top?
+                parameter_dict['visible'] = self.visible.get(name, True)  # TODO: should we store the defaults at top?
                 parameter_dict.update(self.opts.get(name, {}))
 
                 parameter_dicts.append(parameter_dict)
@@ -176,18 +216,7 @@ def _quick_set(func, attr_name, key, value, init):
     # TODO: does this need to be called initially to provide valid defaults?
     if not hasattr(func, attr_name):
         setattr(func, attr_name, init)
-
-    # Check if key is an input
-    if key in inspect.signature(func).parameters:
-        getattr(func, attr_name)[key] = value
-
-    #
-    else:
-        # TODO : how do we check for outputs (like hints, output_shape, ...?)
-        msg = f"\"{key}\" is not a parameter defined by the operation \"{func.__name__}\". "
-        msg += f"\"{func.__name__}\" defines the following parameters: "
-        msg += f"{[name for name in inspect.signature(func).parameters]}."
-        raise ValueError(msg)
+    getattr(func, attr_name)[key] = value
 
 
 def units(arg_name, unit):
@@ -197,9 +226,9 @@ def units(arg_name, unit):
 
     Parameters
     ----------
-    arg_name
+    arg_name : str
         Name of the input to attach a unit to.
-    unit
+    unit : str
         Unit of measurement descriptor to use (e.g. "mm").
     """
     def decorator(func):
@@ -217,9 +246,9 @@ def fixed(arg_name, fix=True):
 
     Parameters
     ----------
-    arg_name
+    arg_name : str
         Name of the input to change fix-state for.
-    fix : optional
+    fix : bool, optional
         Whether or not to fix `arg_name` (default is True).
     """
     def decorator(func):
@@ -237,9 +266,9 @@ def limits(arg_name, limit):
 
     Parameters
     ----------
-    arg_name
+    arg_name : str
         Name of the input to define limits for.
-    limit
+    limit : tuple[float]
         A 2-element sequence representing the lower and upper limit.
     """
     def decorator(func):
@@ -280,11 +309,10 @@ def output_names(*names):
 
     Parameters
     ----------
-    names
+    names : str (any number of strings separated by comma)
         Names for the outputs in the operation.
 
     """
-    print('output_names')
     def decorator(func):
         func.output_names = names
         return func
@@ -292,14 +320,14 @@ def output_names(*names):
     return decorator
 
 
-def output_shape(arg_name, shape):
+def output_shape(arg_name, shape: Union[int, Collection[int]]):
     """
 
     Parameters
     ----------
-    arg_name
+    arg_name : str
         Name of the output to define a shape for.
-    shape
+    shape : int or tuple of ints
         N-element tuple representing the shape (dimensions) of the output.
     """
     def decorator(func):
@@ -309,17 +337,16 @@ def output_shape(arg_name, shape):
     return decorator
 
 
-def visible(arg_name, is_visible=True):
+def visible(arg_name, is_visible):
     """Set whether an input is visible (shown in GUI) or not.
 
     Parameters
     ----------
-    arg_name
+    arg_name : str
         Name of the input to change visibility for.
-    is_visible
+    is_visible : bool, optional
         Whether or not to make the input visible or not (default is True).
     """
-    print('visible')
     def decorator(func):
         _quick_set(func, 'visible', arg_name, is_visible, {})
         return func
@@ -333,9 +360,9 @@ def opts(arg_name, options):
 
     Parameters
     ----------
-    arg_name
+    arg_name : str
         Name of the input to change options for.
-    options
+    options : dict
         Dictionary of options that can be used for the rendering backend (pyqtgraph).
     """
     def decorator(func):

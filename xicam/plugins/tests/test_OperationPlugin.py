@@ -126,7 +126,7 @@ def test_as_parameter():
     @fixed('fixed_param')
     @limits('limits_param', [0, 100])
     @opts('opts_param', {'opt': 'value'})
-    @output_names('out1, out2')
+    @output_names('out1', 'out2')
     @output_shape('out1', [1])
     @units('units_param', 'km')
     @visible('invisible_param', False)
