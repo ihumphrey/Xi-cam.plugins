@@ -9,42 +9,42 @@ class TestFixed:
         def func(a, b):
             return
 
-        # assert func._fixed == {}
-        assert not hasattr(func, '_fixed')
+        # assert func.fixed == {}
+        assert not hasattr(func, 'fixed')
 
     def test_one(self):
         @fixed('a')
         def func(a, b):
             return
-        assert func._fixed == {'a': True}
+        assert func.fixed == {'a': True}
 
     def test_multiple(self):
         @fixed('a')
         @fixed('b')
         def func(a, b, c):
             return
-        assert func._fixed == {'a': True, 'b': True}
+        assert func.fixed == {'a': True, 'b': True}
 
     def test_explicit(self):
         @fixed('a', True)
         @fixed('b', False)
         def func(a, b, c):
             return
-        assert func._fixed == {'a': True, 'b': False}
+        assert func.fixed == {'a': True, 'b': False}
 
     def test_redundant(self):
         @fixed('b')
         @fixed('b')
         def func(a, b, c):
             return
-        assert func._fixed == {'b': True}
+        assert func.fixed == {'b': True}
 
     def test_no_parameter_with_name(self):
         @fixed('dne')
         def func(a, b, c):
             return
         # TODO: what should this do? Should there be checking here?
-        assert func._fixed == {'dne': True}
+        assert func.fixed == {'dne': True}
 
     def test_bad(self):
         # TODO: do we need to test unexpected types?
@@ -58,7 +58,7 @@ def test_limits():
     @limits('a', [0.0, 1.0])
     def func(a):
         return
-    assert func._limits == {'a': [0.0, 1.0]}
+    assert func.limits == {'a': [0.0, 1.0]}
 
 
 def test_output_names():
@@ -67,7 +67,7 @@ def test_output_names():
     def sum(a, b):
         return numpy.sum(a, b)
 
-    assert sum._output_names == ('sum',)
+    assert sum.output_names == ('sum',)
 
 
 def test_output_shape():
@@ -76,7 +76,7 @@ def test_output_shape():
     @output_shape('out', (10, 10))
     def func(a) -> np.ndarray:
         return np.zeros(shape=(10, 10))
-    assert func._output_shape == {'out': (10, 10)}
+    assert func.output_shape == {'out': (10, 10)}
 
 
 # def test_plot_hint():
@@ -88,7 +88,7 @@ def test_units():
     @units('a', 'mm')
     def func(a):
         return
-    assert func._units == {'a': 'mm'}
+    assert func.units == {'a': 'mm'}
 
 
 class TestVisible:
@@ -97,12 +97,12 @@ class TestVisible:
         @output_names('z')
         def func(a):
             return
-        assert func.visible == {'a': True}  # Expects a default to be set regardless
-        # assert func.vislble == {}         # does not expect any defaults to be set; must be explicit
+        # assert func.visible == {'a': True}  # Expects a default to be set regardless
+        assert not hasattr(func, 'visible')        # does not expect any defaults to be set; must be explicit
 
     def test_true(self):
         @visible('a', True)
-        def func(a, b)
+        def func(a, b):
             return
         assert func.visible == {'a': True}
 
@@ -115,10 +115,10 @@ class TestVisible:
 
 def test_opts():
     # TODO: what happens if you pass in an 'invalid' opt? what is an invalid opt?
-    @opts('a', {'invalid pyqtgraph opt?'})
+    @opts('a', {'invalid pyqtgraph opt?': 'idk'})
     def func(a, b):
         return
-    assert func.opts == {'a', {'invalid pyqtgraph opt?'}}
+    assert func.opts == {'a': {'invalid pyqtgraph opt?': 'idk'}}
 
 
 def _test_common_interface():
