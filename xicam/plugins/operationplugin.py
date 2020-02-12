@@ -1,22 +1,20 @@
-# from .hints import PlotHint
+"""TODO Module docstring"""
 import inspect
-import weakref
-from pyqtgraph.parametertree.Parameter import Parameter, PARAM_TYPES
-from functools import partial
-from typing import Collection, Dict, List, Tuple, Type, Union
+from typing import Collection, Tuple, Type, Union
 from collections import OrderedDict
 
+from pyqtgraph.parametertree.Parameter import PARAM_TYPES
 from xicam.core import msg
 
 from .hints import PlotHint
 
 
-class OperationError(Exception):
+class Error(Exception):
     """Base exception for this module."""
     pass
 
 
-class ValidationError(OperationError):
+class ValidationError(Error):
     """Exception raised for invalid OperationPlugin configurations.
 
     Attributes
@@ -43,28 +41,30 @@ class OperationPlugin:
     """A plugin that can be used to define an operation, which can be used in a Workflow.
 
     At its simplest level, an operation can be though of as a function.
-    An operation essentially wraps a python function definition.
     Any arguments (parameters) defined in the python function are treated as inputs for the operation.
     An operation's outputs are defined by the returned values of the python function.
+
+    For an easy way to expose parameters in the GUI, use `OperationPlugin.as_parameter` in conjunction with
+    `pyqtgraph.Parameter.create`.
+    Note that only input parameters that have type hinting annotations will be included in the return value
+    of `OperationPlugin.as_parameter`.
 
     TODO example usage? usage within workflow?
 
     Attributes
     ----------
-    disabled
     filled_values
     fixable
     fixed
-    hints
     limits
-    name
     opts
     output_names
+    output_shape
     units
     visible
-
-    Methods
-    -------
+    disabled : bool
+        Whether or not the operation is disabled (default is False).
+    hints : list
 
     See Also
     --------
@@ -77,11 +77,32 @@ class OperationPlugin:
 
     Examples
     --------
+    TODO
     """
+    def __init__(self, func, filled_values=None, fixable: dict = None, fixed: dict = None, limits: dict = None,
+                 opts: dict = None, output_names: Tuple[str, ...] = None, output_shape: dict = None,
+                 units: dict = None, visible: dict = None):
+        """
 
-    def __init__(self, func, filled_values=None, output_names: Tuple[str, ...] = None, limits: dict = None,
-                 fixed: dict = None, fixable: dict = None, visible: dict = None, opts: dict = None, units: dict = None,
-                 output_shape: dict = None):
+        Note that an OperationPlugin can be created by using the decorator `@OperationPlugin` (recommended)
+        or using the constructor explicitly.
+        When using the decorator, use the decorators provided in this module to set the operation's attributes.
+        The `@OperationPlugin` decorator must be used before the attribute decorators.
+
+        Parameters
+        ----------
+        func : Callable
+            Function that this operation will call.
+        filled_values : dict, optional
+        fixable : dict, optional
+        fixed :  dict, optional
+        limits : dict, optional
+        opts : dict, optional
+        output_names : tuple, optional
+        output_shape : dict, optional
+        units : dict, optional
+        visible : dict, optional
+        """
         self._func = func
         self.name = getattr(func, 'name', getattr(func, '__name__', None))
         if self.name is None:
@@ -102,6 +123,9 @@ class OperationPlugin:
         self._validate()
 
     def _validate(self):
+        """Validates the OperationPlugin's inputs and outputs."""
+
+        # Capture any validation issues for use later when raising
         invalid_msg = ""
         # TODO make this an actual property?
         input_properties = {"fixable": self.fixable,
@@ -110,12 +134,13 @@ class OperationPlugin:
                             "opts": self.opts,
                             "units": self.units,
                             "visible": self.visible}
-        # Ensure all the referenced parameters in the operation's state are part of the operation
-        # TODO: this checks if all the properties have default values for each input param. Do we want this?
+
+        # Check if all the attributes have a default value for each input param
+        # TODO: Do we want this?
         for arg in self.input_names:
             for name, prop in input_properties.items():
                 if prop and arg not in prop:
-                    pass  # print(f"{name}: {prop}")  # TODO: this passes...
+                    ...  # print(f"{name}: {prop}")  # TODO: add invalidation error message.
 
         # Check if there are any input args that are not actually defined in the operation
         # e.g. 'x' is not a valid input in the case below:
@@ -139,6 +164,7 @@ class OperationPlugin:
             msg.logMessage(f"All args for {self} are valid.")
 
     def __call__(self, **kwargs):
+        """Allows this class to be used as a function decorator."""
         filled_kwargs = self.filled_values.copy()
         filled_kwargs.update(kwargs)
         return self._func(**filled_kwargs)
@@ -249,7 +275,7 @@ def _quick_set(func, attr_name, key, value, init):
 
 
 def units(arg_name, unit):
-    """Define units for an input.
+    """Decorator to define units for an input.
 
     Associates a unit of measurement with an input.
 
@@ -259,6 +285,15 @@ def units(arg_name, unit):
         Name of the input to attach a unit to.
     unit : str
         Unit of measurement descriptor to use (e.g. "mm").
+
+    Examples
+    --------
+    Create an operation where its `x` parameter has its units defined in microns.
+
+    >>>@OperationPlugin\
+    @units('x', '\u03BC'+'m')\
+    def op(x:float) -> float:\
+        ...
     """
     def decorator(func):
         _quick_set(func, 'units', arg_name, unit, {})
@@ -268,7 +303,8 @@ def units(arg_name, unit):
 
 
 def fixed(arg_name, fix=True):
-    """Set whether or not an input's value is fixed.
+    #TODO is this a toggleable 'lock' on the parameter's value?
+    """Decorator to set whether or not an input's value is fixed.
 
     By default, sets the `arg_name` input to fixed, meaning its value cannot
     be changed.
@@ -279,6 +315,8 @@ def fixed(arg_name, fix=True):
         Name of the input to change fix-state for.
     fix : bool, optional
         Whether or not to fix `arg_name` (default is True).
+
+    TODO example
     """
     def decorator(func):
         _quick_set(func, 'fixed', arg_name, fix, {})
@@ -288,7 +326,7 @@ def fixed(arg_name, fix=True):
 
 
 def limits(arg_name, limit):
-    """Define limits for an input.
+    """Decorator to define limits for an input.
 
     Limits restrict the allowable values for the input
     (inclusive lower-bound, inclusive upper-bound).
@@ -299,6 +337,23 @@ def limits(arg_name, limit):
         Name of the input to define limits for.
     limit : tuple[float]
         A 2-element sequence representing the lower and upper limit.
+
+    Examples
+    --------
+    Make an operation that has a limit on the `x` parameter from [0, 100].
+
+    >>>@OperationPlugin\
+    @limits('x', [0, 100])\
+    def op(x):\
+        ...
+
+    Make an operation that has a limit on the `x` parameter from [0.0, 1.0].
+    >>>@OperationPlugin\
+    @limits('x', [0.0, 1.0])\
+    @opts('x', step=0.1)\
+    def op(x):\
+        ...
+
     """
     def decorator(func):
         _quick_set(func, 'limits', arg_name, limit, {})
@@ -310,7 +365,7 @@ def limits(arg_name, limit):
 # TODO: need an image_hint decorator? coplot_hint decorator?
 
 def plot_hint(*args, **kwargs):
-    """Defines plot hints for 1-dimensional outputs.
+    """Decorator to define plot hints for 1-dimensional outputs.
 
     Parameters
     ----------
@@ -331,7 +386,7 @@ def plot_hint(*args, **kwargs):
 
 
 def output_names(*names):
-    """Define the names of the outputs for the operation.
+    """Decorator to define the names of the outputs for an operation.
 
     Defines N-number of output names. These names will be used (in-order)
     to define any outputs that the operation has.
@@ -340,6 +395,17 @@ def output_names(*names):
     ----------
     names : str (any number of strings separated by comma)
         Names for the outputs in the operation.
+
+    Examples
+    --------
+    TODO is the return type required?
+
+    Define an operation that has the outputs `x` and `y`.
+
+    >>>@OperationPlugin\
+    @output_names("x", "y")\
+    def some_operation(a: int, b: int) -> tuple:\
+        return a, b
 
     """
     def decorator(func):
@@ -350,7 +416,8 @@ def output_names(*names):
 
 
 def output_shape(arg_name, shape: Union[int, Collection[int]]):
-    """
+    # TODO: how does this work? How do we know the shape before runtime?
+    """Decorator to set the shape of an output in an operation."
 
     Parameters
     ----------
@@ -358,6 +425,10 @@ def output_shape(arg_name, shape: Union[int, Collection[int]]):
         Name of the output to define a shape for.
     shape : int or tuple of ints
         N-element tuple representing the shape (dimensions) of the output.
+
+    Examples
+    --------
+    TODO
     """
     def decorator(func):
         _quick_set(func, 'output_shape', arg_name, shape, {})
@@ -367,7 +438,7 @@ def output_shape(arg_name, shape: Union[int, Collection[int]]):
 
 
 def visible(arg_name, is_visible=True):
-    """Set whether an input is visible (shown in GUI) or not.
+    """Decorator to set whether an input is visible (shown in GUI) or not.
 
     Parameters
     ----------
@@ -375,6 +446,16 @@ def visible(arg_name, is_visible=True):
         Name of the input to change visibility for.
     is_visible : bool, optional
         Whether or not to make the input visible or not (default is True).
+
+    Examples
+    --------
+    Define an operation that makes the data_image invisible to the GUI (when using `as_parameter()` and pyqtgraph).
+
+    >>>@OperationPlugin\
+    @visible('data_image')\
+    def threshold(data_image: np.ndarray, threshold: float = 0.5) -> np.ndarray:\
+        return ...
+
     """
     def decorator(func):
         _quick_set(func, 'visible', arg_name, is_visible, {})
@@ -383,16 +464,28 @@ def visible(arg_name, is_visible=True):
 
 
 def opts(arg_name, options):
-    """Set the opts (pyqtgraph Parameter opts) for `arg_name`.
+    """Decorator to set the opts (pyqtgraph Parameter opts) for `arg_name`.
 
-    TODO: more details
+    This is useful for attaching any extra attributes onto an operation input argument.
+
+    These options correspond to the optional opts expected by pyqtgraph.Parameter.
+    The options are typically used to add extra configuration to a Parameter.
 
     Parameters
     ----------
     arg_name : str
-        Name of the input to change options for.
+        Name of the input to add options for.
     options : dict
         Dictionary of options that can be used for the rendering backend (pyqtgraph).
+
+    Examples
+    --------
+    Define an operation where the `x` input is readonly.
+
+    >>>@OperationPlugin\
+    @opts('x': {'readonly': True})\
+    def op(x: str = 100) -> str:\
+        return x
     """
     def decorator(func):
         _quick_set(func, 'opts', arg_name, options, {})
