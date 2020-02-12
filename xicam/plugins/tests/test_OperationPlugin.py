@@ -115,17 +115,17 @@ class TestVisible:
 
 def test_opts():
     # TODO: what happens if you pass in an 'invalid' opt? what is an invalid opt?
-    @opts('a', {'invalid pyqtgraph opt?': 'idk'})
+    @opts('a', someopt='opt')
     def func(a, b):
         return
-    assert func.opts == {'a': {'invalid pyqtgraph opt?': 'idk'}}
+    assert func.opts == {'a': {'someopt': 'opt'}}
 
 
 def test_as_parameter():
     @OperationPlugin
     @fixed('fixed_param')
     @limits('limits_param', [0, 100])
-    @opts('opts_param', {'opt': 'value'})
+    @opts('opts_param', opt='value')
     @output_names('out1', 'out2')
     @output_shape('out1', [1])
     @units('units_param', 'km')

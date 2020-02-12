@@ -463,7 +463,7 @@ def visible(arg_name, is_visible=True):
     return decorator
 
 
-def opts(arg_name, options):
+def opts(arg_name, **options):
     """Decorator to set the opts (pyqtgraph Parameter opts) for `arg_name`.
 
     This is useful for attaching any extra attributes onto an operation input argument.
@@ -475,15 +475,15 @@ def opts(arg_name, options):
     ----------
     arg_name : str
         Name of the input to add options for.
-    options : dict
-        Dictionary of options that can be used for the rendering backend (pyqtgraph).
+    options : keyword args
+        Keyword arguments that can be used for the rendering backend (pyqtgraph).
 
     Examples
     --------
     Define an operation where the `x` input is readonly.
 
     >>>@OperationPlugin\
-    @opts('x': {'readonly': True})\
+    @opts('x', 'readonly'=True)\
     def op(x: str = 100) -> str:\
         return x
     """
