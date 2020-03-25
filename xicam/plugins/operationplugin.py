@@ -9,12 +9,12 @@ from xicam.core import msg
 from .hints import PlotHint
 
 
-class Error(Exception):
+class OperationError(Exception):
     """Base exception for this module."""
     pass
 
 
-class ValidationError(Error):
+class ValidationError(OperationError):
     """Exception raised for invalid OperationPlugin configurations.
 
     Attributes
@@ -68,8 +68,8 @@ class OperationPlugin:
 
     See Also
     --------
-    (Workflow) TODO Fill in ref correctly
-    (GUIPlugin) TODO fill in ref correctly
+    xicam.core.execution.Workflow
+    xicam.plugins.GUIPlugin
 
     Notes
     -----
