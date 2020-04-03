@@ -78,8 +78,6 @@ class OperationPlugin:
     visible : dict
         Keys are the pareameter names, values are bools indicating whehter or not the parameter
         is visible (when exposed using pyqtgraph).
-    disabled : bool
-        Whether or not the operation is disabled (default is False).
     hints : list
 
     See Also
@@ -101,8 +99,7 @@ class OperationPlugin:
     """
     def __init__(self, func, filled_values=None, fixable: dict = None, fixed: dict = None,
                  limits: dict = None, opts: dict = None, output_names: Tuple[str, ...] = None,
-                 output_shape: dict = None, units: dict = None, visible: dict = None,
-                 disabled=False):
+                 output_shape: dict = None, units: dict = None, visible: dict = None):
         """Create an Operation explicitly with __init__.
 
         Note that an OperationPlugin can be created by using the decorator `@OperationPlugin` (recommended)
@@ -114,8 +111,6 @@ class OperationPlugin:
         ----------
         func : Callable
             Function that this operation will call.
-        disabled : bool
-            Whether or not the operation is disabled (default is False).
         filled_values : dict, optional
             Values to fill for the parameters.
         fixable : dict, optional
@@ -144,8 +139,6 @@ class OperationPlugin:
             output_names = (output_names,)
         self.output_names = output_names or getattr(func, 'output_names', tuple())
         self.output_shape = output_shape or getattr(func, 'output_shape', {})
-
-        self.disabled = disabled  # TODO: does this need a setter for more explicit API?
         self.filled_values = filled_values or {}
         self.limits = limits or getattr(func, 'limits', {})
         self.units = units or getattr(func, 'units', {})
