@@ -57,6 +57,7 @@ class OperationPlugin:
     Attributes
     ----------
     filled_values : dict
+        Keys are the parameter names, values are the current values for the parameter.
     fixable : dict
         Keys are the parameter names, values are bools indicating whether or not the parameter
         is able to be fixed.
@@ -101,7 +102,7 @@ class OperationPlugin:
     def __init__(self, func, disabled=False, filled_values=None, fixable: dict = None, fixed: dict = None,
                  limits: dict = None, opts: dict = None, output_names: Tuple[str, ...] = None,
                  output_shape: dict = None, units: dict = None, visible: dict = None):
-        """
+        """Create an Operation explicitly with __init__.
 
         Note that an OperationPlugin can be created by using the decorator `@OperationPlugin` (recommended)
         or using the constructor explicitly.
@@ -110,19 +111,29 @@ class OperationPlugin:
 
         Parameters
         ----------
-        disabled : bool
-            Whether or not the operation is disabled (default is False).
         func : Callable
             Function that this operation will call.
+        disabled : bool
+            Whether or not the operation is disabled (default is False).
         filled_values : dict, optional
+            Values to fill for the parameters.
         fixable : dict, optional
+            Indicates which parameters are able to be fixed.
         fixed :  dict, optional
+            Indicates whether or not a parameter is fixed.
         limits : dict, optional
+            Defines limits for parameters.
         opts : dict, optional
+            Additional options (kwargs) for the parameter
+            (useful with pyqtgraph's Parameter/ParameterTree).
         output_names : tuple, optional
+            Names for the outputs, or returned values, of the operation.
         output_shape : dict, optional
+            Defines expected shapes for the outputs.
         units : dict, optional
+            Defines units for the parameters in the operation.
         visible : dict, optional
+            Indicates if a parameter is visible or not (see pyqtgraph.Parameter).
         """
         self._func = func
         self.name = getattr(func, 'name', getattr(func, '__name__', None))
@@ -369,6 +380,7 @@ def limits(arg_name, limit):
         ...
 
     Make an operation that has a limit on the `x` parameter from [0.0, 1.0].
+
     >>>@OperationPlugin\
     @limits('x', [0.0, 1.0])\
     @opts('x', step=0.1)\
@@ -419,13 +431,11 @@ def output_names(*names):
 
     Examples
     --------
-    TODO is the return type required?
-
     Define an operation that has the outputs `x` and `y`.
 
     >>>@OperationPlugin\
     @output_names("x", "y")\
-    def some_operation(a: int, b: int) -> tuple:\
+    def some_operation(a: int, b: int):\
         return a, b
 
     """
