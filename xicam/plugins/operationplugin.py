@@ -1,7 +1,7 @@
 """TODO Module docstring"""
 import inspect
 from typing import Collection, Tuple, Type, Union
-from collections import OrderedDict
+from collections import namedtuple, OrderedDict
 
 from pyqtgraph.parametertree.Parameter import PARAM_TYPES
 from xicam.core import msg
@@ -99,9 +99,10 @@ class OperationPlugin:
         return x + y
 
     """
-    def __init__(self, func, disabled=False, filled_values=None, fixable: dict = None, fixed: dict = None,
+    def __init__(self, func, filled_values=None, fixable: dict = None, fixed: dict = None,
                  limits: dict = None, opts: dict = None, output_names: Tuple[str, ...] = None,
-                 output_shape: dict = None, units: dict = None, visible: dict = None):
+                 output_shape: dict = None, units: dict = None, visible: dict = None,
+                 disabled=False):
         """Create an Operation explicitly with __init__.
 
         Note that an OperationPlugin can be created by using the decorator `@OperationPlugin` (recommended)
@@ -232,7 +233,8 @@ class OperationPlugin:
         return tuple(inspect.signature(self._func).parameters.keys())
 
     def __reduce__(self):
-        return OperationPlugin, (self._func, self.filled_values, self.output_names)
+        return OperationPlugin, (self._func,), {'filled_values': self.filled_values,
+                                                'output_names': self.output_names}
 
     def as_parameter(self):
         """Return the operation's inputs as a ready-to-use object with pyqtgraph.
