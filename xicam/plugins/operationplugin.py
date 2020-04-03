@@ -139,11 +139,13 @@ class OperationPlugin:
         self.name = getattr(func, 'name', getattr(func, '__name__', None))
         if self.name is None:
             raise NameError('The provided operation is unnamed.')
+        if type(output_names) is str:
+            output_names = (output_names,)
         self.output_names = output_names or getattr(func, 'output_names', tuple())
         self.output_shape = output_shape or getattr(func, 'output_shape', {})
 
         self.disabled = disabled  # TODO: does this need a setter for more explicit API?
-        self.filled_values = filled_values or {}  # TODO: what is the purpose of filled_values?
+        self.filled_values = filled_values or {}
         self.limits = limits or getattr(func, 'limits', {})
         self.units = units or getattr(func, 'units', {})
         self.fixed = fixed or getattr(func, 'fixed', {})
