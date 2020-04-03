@@ -3,6 +3,8 @@ from xicam.plugins.operationplugin import (fixed, limits, opts, output_names,
                                            output_shape, plot_hint, units, visible)
 
 
+# Note that most of the tests below are simply wrapping functions without
+# the OperationPlugin decorator.
 class TestFixed:
 
     def test_none(self):
@@ -193,45 +195,34 @@ def test_as_parameter():
     assert func.as_parameter() == expected_as_parameter
 
 
-def _test_common_interface():
-    import numpy as np
-
-    def sum(a, b):
-        return np.sum(a, b)
-
-    op = OperationPlugin(sum)
-
-    # assert op.inputs ==
-
-
 # TODO: BrokenPipe and ValueError: I/O operation on closed file exceptions occur:
 # * more than one of these workflow tests is run
 # * one of the workflow tests is run, and a test above has a print() in it
 
-# def test_workflow():
-#     from xicam.core.execution.workflow import Workflow
-#     from xicam.core.execution.daskexecutor import DaskExecutor
-#     from xicam.plugins.operationplugin import output_names
-#
-#     executor = DaskExecutor()
-#
-#     @OperationPlugin
-#     @output_names('square')
-#     def square(a=3) -> int:
-#         return a ** 2
-#
-#     @OperationPlugin
-#     @output_names('sum')
-#     def my_sum(a, b=3) -> int:
-#         return a + b
-#
-#     wf = Workflow()
-#
-#     wf.add_operation(square)
-#     wf.add_operation(my_sum)
-#     wf.add_link(square, my_sum, 'square', 'a')
-#
-#     assert wf.execute_synchronous(executor=executor) == [{'sum': 12}]
+def test_workflow():
+    from xicam.core.execution.workflow import Workflow
+    from xicam.core.execution.daskexecutor import DaskExecutor
+    from xicam.plugins.operationplugin import output_names
+
+    executor = DaskExecutor()
+
+    @OperationPlugin
+    @output_names('square')
+    def square(a=3) -> int:
+        return a ** 2
+
+    @OperationPlugin
+    @output_names('sum')
+    def my_sum(a, b=3) -> int:
+        return a + b
+
+    wf = Workflow()
+
+    wf.add_operation(square)
+    wf.add_operation(my_sum)
+    wf.add_link(square, my_sum, 'square', 'a')
+
+    assert wf.execute_synchronous(executor=executor) == [{'sum': 12}]
 #
 #
 # def test_autoconnect():
