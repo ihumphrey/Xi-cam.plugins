@@ -44,24 +44,39 @@ class OperationPlugin:
     Any arguments (parameters) defined in the python function are treated as inputs for the operation.
     An operation's outputs are defined by the returned values of the python function.
 
+    There are various methods available to help with modifying the operation's parameters.
+
+    For more information on the attributes, see the documentation for their respective method
+    (e.g. for more information on `limits`, see the `limits` method documentation).
+
     For an easy way to expose parameters in the GUI, use `OperationPlugin.as_parameter` in conjunction with
     `pyqtgraph.Parameter.create`.
     Note that only input parameters that have type hinting annotations will be included in the return value
     of `OperationPlugin.as_parameter`.
 
-    TODO example usage? usage within workflow?
-
     Attributes
     ----------
-    filled_values
-    fixable
-    fixed
-    limits
-    opts
-    output_names
-    output_shape
-    units
-    visible
+    filled_values : dict
+    fixable : dict
+        Keys are the parameter names, values are bools indicating whether or not the parameter
+        is able to be fixed.
+    fixed : dict
+        Keys are the parameter names, values are bools indicating whether or not the parameter
+        is fixed.
+    limits : dict
+        Keys are the parameter names, values are the limits (which are a collection of floats).
+    opts : dict
+        Any additional options (kwargs) to be passed to the parameter (useful with pyqtgraph).
+    output_names : Tuple[str, ...]
+        Names (in order) of the output(s) for the operation.
+    output_shape : dict
+        Keys are the output parameter names, values are the expected shape of the output
+        (which are of type list).
+    units : dict
+        Keys are the parameter names, values are units (of type str).
+    visible : dict
+        Keys are the pareameter names, values are bools indicating whehter or not the parameter
+        is visible (when exposed using pyqtgraph).
     disabled : bool
         Whether or not the operation is disabled (default is False).
     hints : list
@@ -77,11 +92,15 @@ class OperationPlugin:
 
     Examples
     --------
-    TODO
+    Here, we define a function, then wrap it with the OperationPlugin decorator to make it an operation.
+    >>>@OperationPlugin\
+    def my_operation(x: int, y: int):\
+        return x + y
+
     """
-    def __init__(self, func, filled_values=None, fixable: dict = None, fixed: dict = None, limits: dict = None,
-                 opts: dict = None, output_names: Tuple[str, ...] = None, output_shape: dict = None,
-                 units: dict = None, visible: dict = None):
+    def __init__(self, func, disabled=False, filled_values=None, fixable: dict = None, fixed: dict = None,
+                 limits: dict = None, opts: dict = None, output_names: Tuple[str, ...] = None,
+                 output_shape: dict = None, units: dict = None, visible: dict = None):
         """
 
         Note that an OperationPlugin can be created by using the decorator `@OperationPlugin` (recommended)
@@ -91,6 +110,8 @@ class OperationPlugin:
 
         Parameters
         ----------
+        disabled : bool
+            Whether or not the operation is disabled (default is False).
         func : Callable
             Function that this operation will call.
         filled_values : dict, optional
@@ -110,7 +131,7 @@ class OperationPlugin:
         self.output_names = output_names or getattr(func, 'output_names', tuple())
         self.output_shape = output_shape or getattr(func, 'output_shape', {})
 
-        self.disabled = False  # TODO: does this need a setter for more explicit API?
+        self.disabled = disabled  # TODO: does this need a setter for more explicit API?
         self.filled_values = filled_values or {}  # TODO: what is the purpose of filled_values?
         self.limits = limits or getattr(func, 'limits', {})
         self.units = units or getattr(func, 'units', {})
