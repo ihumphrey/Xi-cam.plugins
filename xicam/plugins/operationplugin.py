@@ -303,6 +303,31 @@ def _quick_set(func, attr_name, key, value, init):
     getattr(func, attr_name)[key] = value
 
 
+def display_name(name):
+    """Set the display name for the operation.
+
+    Display name is how this operation's name will be displayed in Xi-cam.
+
+    Parameters
+    ----------
+    name : str
+        Name for the operation.
+
+    Examples
+    --------
+    Create an operation whose display name is "Cube Operation."
+
+    >>>@OperationPlugin\
+    @display_name('Cube Operation')\
+    def cube(n: int) -> int:\
+        return n**3
+    """
+    def decorator(func):
+        func.name = name
+        return func
+    return decorator
+
+
 def units(arg_name, unit):
     """Decorator to define units for an input.
 

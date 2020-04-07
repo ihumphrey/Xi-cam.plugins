@@ -1,5 +1,5 @@
 from xicam.plugins import OperationPlugin
-from xicam.plugins.operationplugin import (fixed, limits, opts, output_names,
+from xicam.plugins.operationplugin import (display_name, fixed, limits, opts, output_names,
                                            output_shape, plot_hint, units, visible)
 
 
@@ -91,6 +91,13 @@ def test_units():
     def func(a):
         return
     assert func.units == {'a': 'mm'}
+
+
+def test_display_name():
+    @display_name('my operation name')
+    def func(a):
+        return
+    assert func.name == 'my operation name'
 
 
 class TestVisible:
