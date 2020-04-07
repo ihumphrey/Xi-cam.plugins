@@ -64,6 +64,9 @@ class OperationPlugin:
     fixed : dict
         Keys are the parameter names, values are bools indicating whether or not the parameter
         is fixed.
+    input_names : Tuple[str, ...]
+        Names (in order) of the input argument(s) for the operation. Note that if not provided,
+        input names default to the argument names in the function signature.
     limits : dict
         Keys are the parameter names, values are the limits (which are a collection of floats).
     opts : dict
@@ -97,7 +100,7 @@ class OperationPlugin:
         return x + y
 
     """
-    def __init__(self, func, filled_values=None, fixable: dict = None, fixed: dict = None,
+    def __init__(self, func, filled_values=None, fixable: dict = None, fixed: dict = None, input_names: Tuple[str, ...] = None,
                  limits: dict = None, opts: dict = None, output_names: Tuple[str, ...] = None,
                  output_shape: dict = None, units: dict = None, visible: dict = None):
         """Create an Operation explicitly with __init__.
@@ -135,6 +138,13 @@ class OperationPlugin:
         self.name = getattr(func, 'name', getattr(func, '__name__', None))
         if self.name is None:
             raise NameError('The provided operation is unnamed.')
+        # Allow passing a string
+        if type(input_names) is str:
+            input_names = (input_names,)
+        # Fallback to inspecting the function arg names if no input names provided
+        self.input_names = input_names or getattr(func,
+                                                  'input_names',
+                                                  tuple(inspect.signature(self._func).parameters.keys()))
         if type(output_names) is str:
             output_names = (output_names,)
         self.output_names = output_names or getattr(func, 'output_names', tuple())
@@ -220,13 +230,9 @@ class OperationPlugin:
         output_type_map = OrderedDict(zip(self.output_names, return_annotation))
         return output_type_map
 
-    @property
-    def input_names(self):
-        """Returns the names of the inputs in the operation."""
-        return tuple(inspect.signature(self._func).parameters.keys())
-
     def __reduce__(self):
         return OperationPlugin, (self._func,), {'filled_values': self.filled_values,
+                                                'input_names': self.input_names,
                                                 'output_names': self.output_names}
 
     def as_parameter(self):
@@ -437,6 +443,29 @@ def plot_hint(*args, **kwargs):
         func.hints.append(PlotHint(*args, **kwargs))
         return func
 
+    return decorator
+
+
+def input_names(*names):
+    # TODO : what happens if we give too many (or not enough) names for number of args into op?
+    # TODO : how does this affect linking (if at all)?
+    """Decorator to define input names for the operation.
+
+    If not provided, input names will be determined by examining the names of the arguments
+    to the operation function.
+
+    Examples
+    --------
+    Create an
+
+    >>>@OperationPlugin\
+    @input_names("1", "2")\
+    def my_add(x, y):\
+        return x + y
+    """
+    def decorator(func):
+        func.input_names = names
+        return func
     return decorator
 
 

@@ -1,5 +1,5 @@
 from xicam.plugins import OperationPlugin
-from xicam.plugins.operationplugin import (display_name, fixed, limits, opts, output_names,
+from xicam.plugins.operationplugin import (display_name, fixed, input_names, limits, opts, output_names,
                                            output_shape, plot_hint, units, visible)
 
 
@@ -66,10 +66,25 @@ def test_limits():
 def test_output_names():
     import numpy
     @output_names('sum')
-    def sum(a, b):
+    def my_sum(a, b):
         return numpy.sum(a, b)
 
-    assert sum.output_names == ('sum',)
+    assert my_sum.output_names == ('sum',)
+
+
+def test_input_names():
+    @input_names('1', '2')
+    def my_sum(x, y):
+        return x + y
+
+    assert my_sum.input_names == ('1', '2')
+
+
+def test_input_names_default():
+    @OperationPlugin
+    def my_op(x, y):
+        return x + y
+    assert my_op.input_names == ('x', 'y')
 
 
 def test_output_shape():
