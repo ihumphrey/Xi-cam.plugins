@@ -8,18 +8,31 @@ from xicam.plugins.operationplugin import (display_name, fixed, input_names, lim
                                            output_shape, plot_hint, units, visible, ValidationError)
 
 
+# Tests both the function interface and Operation API interface
+#
+# the "test_defaults" cases test the absence of the tested decorator,
+# i.e. what is the default initialized value for the tested decorator's
+# associated attribute
+
+# @fixed
 class TestFixed:
-    def test_decorator_not_provided(self):
+    def test_defaults(self):
         def func(a, b):
             return
         # assert func.fixed == {}
         assert not hasattr(func, 'fixed')
+        # Test Operation API
+        op = OperationPlugin(func)
+        assert op.fixed == {}
 
     def test_single(self):
         @fixed('a')
         def func(a, b):
             return
         assert func.fixed == {'a': True}
+        # Test Operation API
+        op = OperationPlugin(func)
+        assert op.fixed == {'a': True}
 
     def test_multiple(self):
         @fixed('a')
@@ -27,6 +40,9 @@ class TestFixed:
         def func(a, b, c):
             return
         assert func.fixed == {'a': True, 'b': True}
+        # Test Operation API
+        op = OperationPlugin(func)
+        assert op.fixed == {'a': True, 'b': True}
 
     def test_explicit(self):
         @fixed('a', True)
@@ -34,6 +50,9 @@ class TestFixed:
         def func(a, b, c):
             return
         assert func.fixed == {'a': True, 'b': False}
+        # Test Operation API
+        op = OperationPlugin(func)
+        assert op.fixed == {'a': True, 'b': False}
 
     def test_redundant(self):
         @fixed('b')
@@ -41,13 +60,18 @@ class TestFixed:
         def func(a, b, c):
             return
         assert func.fixed == {'b': True}
+        # Test Operation API
+        op = OperationPlugin(func)
+        assert op.fixed == {'b': True}
 
     def test_no_parameter_with_name(self):
         @fixed('dne')
         def func(a, b, c):
             return
-        # TODO: what should this do? Should there be checking here?
         assert func.fixed == {'dne': True}
+        # Test Operation API
+        with pytest.raises(ValidationError):
+            OperationPlugin(func)
 
     def test_bad(self):
         # TODO: do we need to test unexpected types?
@@ -57,13 +81,27 @@ class TestFixed:
         assert True
 
 
-def test_limits():
-    @limits('a', [0.0, 1.0])
-    def func(a):
-        return
-    assert func.limits == {'a': [0.0, 1.0]}
+# @limits
+class TestLimits:
+    def test_defaults(self):
+        def func(a):
+            return
+        assert not hasattr(func, 'limits')
+        # Test Operation API
+        op = OperationPlugin(func)
+        assert op.limits == {}
+
+    def test_limits(self):
+        @limits('a', [0.0, 1.0])
+        def func(a):
+            return
+        assert func.limits == {'a': [0.0, 1.0]}
+        # Test Operation API
+        op = OperationPlugin(func)
+        assert op.limits == {'a': [0.0, 1.0]}
 
 
+# @output_names
 class TestOutputNames:
     def test_output_names(self):
         @output_names('sum')
@@ -87,8 +125,9 @@ class TestOutputNames:
         assert "output_names" in expected_warn_record.msg
 
 
+# @input_names
 class TestInputNames:
-    def test_decorator_not_provided(self):
+    def test_defaults(self):
         # Test not using the input_names decorator
         def my_op(x, y):
             return x + y
@@ -156,28 +195,49 @@ class TestOutputShape:
 #     assert False, 'bnlah'
 
 
-def test_units():
-    @units('a', 'mm')
-    def func(a):
-        return
-    assert func.units == {'a': 'mm'}
-    # Test Operation API
-    op = OperationPlugin(func)
-    assert op.units == {'a': 'mm'}
+# @units
+class TestUnits:
+    def test_defaults(self):
+        def func(a):
+            return
+        assert not hasattr(func, 'units')
+        # Test Operation API
+        op = OperationPlugin(func)
+        assert op.units == {}
+
+    def test_units(self):
+        @units('a', 'mm')
+        def func(a):
+            return
+        assert func.units == {'a': 'mm'}
+        # Test Operation API
+        op = OperationPlugin(func)
+        assert op.units == {'a': 'mm'}
 
 
-def test_display_name():
-    @display_name('my operation name')
-    def func(a):
-        return
-    assert func.name == 'my operation name'
-    # Test Operation API
-    op = OperationPlugin(func)
-    assert op.name == 'my operation name'
+# @display_name
+class TestDisplayName:
+    def test_defaults(self):
+        def func(a):
+            return
+        assert not hasattr(func, 'name')
+        # Test Operation API
+        op = OperationPlugin(func)
+        assert op.name == func.__name__
+
+    def test_display_name(self):
+        @display_name('my operation name')
+        def func(a):
+            return
+        assert func.name == 'my operation name'
+        # Test Operation API
+        op = OperationPlugin(func)
+        assert op.name == 'my operation name'
 
 
+# @visible
 class TestVisible:
-    def test_decorator_not_provided(self):
+    def test_defaults(self):
         # TODO: what should this return?
         @output_names('z')
         def func(a):
@@ -216,20 +276,32 @@ class TestVisible:
         assert op.visible == {'a': False}
 
 
-def test_opts():
-    # TODO: what happens if you pass in an 'invalid' opt? what is an invalid opt?
-    @opts('a', someopt='opt')
-    def func(a, b):
-        return
-    assert func.opts == {'a': {'someopt': 'opt'}}
-    # Test Operation API
-    op = OperationPlugin(func)
-    assert op.opts == {'a': {'someopt': 'opt'}}
+# @opts
+class TestOpts:
+    def test_defaults(self):
+        def func(a):
+            return
+        assert not hasattr(func, 'opts')
+        # Test Operation API
+        op = OperationPlugin(func)
+        assert op.opts == {}
+
+    def test_opts(self):
+        # TODO: what happens if you pass in an 'invalid' opt? what is an invalid opt?
+        @opts('a', someopt='opt')
+        def func(a, b):
+            return
+        assert func.opts == {'a': {'someopt': 'opt'}}
+        # Test Operation API
+        op = OperationPlugin(func)
+        assert op.opts == {'a': {'someopt': 'opt'}}
 
 
 def test_as_parameter():
     @OperationPlugin
+    # @display_name('my_operation_name')
     @fixed('fixed_param')
+    # @input_names('fixed', 'visible', 'limits', 'opts', 'units', 'unseen', 'default')
     @limits('limits_param', [0, 100])
     @opts('opts_param', opt='value')
     @output_names('out1', 'out2')
