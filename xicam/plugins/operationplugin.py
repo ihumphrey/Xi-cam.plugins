@@ -96,7 +96,7 @@ class OperationPlugin:
     --------
     Here, we define a function, then wrap it with the OperationPlugin decorator to make it an operation.
     >>>@OperationPlugin\
-    def my_operation(x: int, y: int):\
+    def my_operation(x: int = 1, y: int = 2): -> int\
         return x + y
 
     """
@@ -337,7 +337,7 @@ def display_name(name):
 
     >>>@OperationPlugin\
     @display_name('Cube Operation')\
-    def cube(n: int) -> int:\
+    def cube(n: int = 2) -> int:\
         return n**3
     """
     def decorator(func):
@@ -364,8 +364,8 @@ def units(arg_name, unit):
 
     >>>@OperationPlugin\
     @units('x', '\u03BC'+'m')\
-    def op(x:float) -> float:\
-        ...
+    def op(x: float = -1) -> float:\
+        return x *= -1.0
     """
     def decorator(func):
         _quick_set(func, 'units', arg_name, unit, {})
@@ -473,7 +473,7 @@ def input_names(*names):
 
     >>>@OperationPlugin\
     @input_names("first", "second")\
-    def my_add(x, y):\
+    def my_add(x: int, y: int) -> int:\
         return x + y
     """
     def decorator(func):
@@ -499,7 +499,7 @@ def output_names(*names):
 
     >>>@OperationPlugin\
     @output_names("x", "y")\
-    def some_operation(a: int, b: int):\
+    def some_operation(a: int, b: int) -> Tuple[int, int]:\
         return a, b
 
     """
