@@ -1,20 +1,21 @@
+import pytest
+
+import numpy as np
+
+from xicam.core import msg
 from xicam.plugins import OperationPlugin
 from xicam.plugins.operationplugin import (display_name, fixed, input_names, limits, opts, output_names,
-                                           output_shape, plot_hint, units, visible)
+                                           output_shape, plot_hint, units, visible, ValidationError)
 
 
-# Note that most of the tests below are simply wrapping functions without
-# the OperationPlugin decorator.
 class TestFixed:
-
-    def test_none(self):
+    def test_decorator_not_provided(self):
         def func(a, b):
             return
-
         # assert func.fixed == {}
         assert not hasattr(func, 'fixed')
 
-    def test_one(self):
+    def test_single(self):
         @fixed('a')
         def func(a, b):
             return
@@ -63,37 +64,91 @@ def test_limits():
     assert func.limits == {'a': [0.0, 1.0]}
 
 
-def test_output_names():
-    import numpy
-    @output_names('sum')
-    def my_sum(a, b):
-        return numpy.sum(a, b)
+class TestOutputNames:
+    def test_output_names(self):
+        @output_names('sum')
+        def my_sum(a, b):
+            return np.sum(a, b)
+        assert my_sum.output_names == ('sum',)
+        # Test Operation API
+        op = OperationPlugin(my_sum)
+        assert op.output_names == ('sum',)
 
-    assert my_sum.output_names == ('sum',)
+    def test_output_names_none_provided(self, caplog):
+        def my_op(a, b):
+            return 42
+        assert hasattr(my_op, 'output_names') is False
+        # Test Operation API
+        op = OperationPlugin(my_op)
+        assert op.output_names == tuple()
+        # Expecting a msg.WARNING log record that mentions "output_names"
+        expected_warn_record = caplog.records[0]
+        assert expected_warn_record.levelno == msg.WARNING
+        assert "output_names" in expected_warn_record.msg
 
 
-def test_input_names():
-    @input_names('1', '2')
-    def my_sum(x, y):
-        return x + y
+class TestInputNames:
+    def test_decorator_not_provided(self):
+        # Test not using the input_names decorator
+        def my_op(x, y):
+            return x + y
+        assert hasattr(my_op, 'input_names') is False
+        # Test Operation API
+        op = OperationPlugin(my_op)
+        assert op.input_names == ('x', 'y')
 
-    assert my_sum.input_names == ('1', '2')
+    def test_matching_number_of_names(self):
+        # Test a good use of the input_names decorator
+        @input_names('first', 'second')
+        def my_sum(x, y):
+            return x + y
+        assert my_sum.input_names == ('first', 'second')
+        # Test the Operation API
+        op = OperationPlugin(my_sum)
+        assert op.input_names == ('first', 'second')
+
+    def test_fewer_input_names(self):
+        # Test when there are fewer input names given than there are function args
+        @input_names('first')
+        def my_sum(x, y):
+            return x + y
+        assert my_sum.input_names == ('first',)
+        # Test the Operation API
+        with pytest.raises(ValidationError):
+            OperationPlugin(my_sum)
+
+    def test_extra_input_names(self):
+        # Test when there are more input names given that there are function args
+        @input_names('first', 'second', 'third', 'fourth')
+        def my_sum(x, y):
+            return x + y
+        assert my_sum.input_names == ('first', 'second', 'third', 'fourth')
+        # Test the Operation API
+        with pytest.raises(ValidationError):
+            OperationPlugin(my_sum)
 
 
-def test_input_names_default():
-    @OperationPlugin
-    def my_op(x, y):
-        return x + y
-    assert my_op.input_names == ('x', 'y')
+class TestOutputShape:
+    def test_output_shape(self):
+        # TODO: what should the expected shape be? A collection (list/tuple)?
+        @output_shape('out', (10, 10))
+        @output_names('out')
+        def func(a) -> np.ndarray:
+            return np.zeros(shape=(10, 10))
+        assert func.output_shape == {'out': (10, 10)}
+        # Test Operation API
+        op = OperationPlugin(func)
+        assert op.output_shape == {'out': (10, 10)}
 
-
-def test_output_shape():
-    # TODO: what should the expected shape be? A collection (list/tuple)?
-    import numpy as np
-    @output_shape('out', (10, 10))
-    def func(a) -> np.ndarray:
-        return np.zeros(shape=(10, 10))
-    assert func.output_shape == {'out': (10, 10)}
+    def test_missing_output_name(self):
+        # TODO: what should the expected shape be? A collection (list/tuple)?
+        @output_shape('out', (10, 10))
+        def func(a) -> np.ndarray:
+            return np.zeros(shape=(10, 10))
+        assert func.output_shape == {'out': (10, 10)}
+        # Test Operation API
+        with pytest.raises(ValidationError):
+            OperationPlugin(func)
 
 
 # def test_plot_hint():
@@ -106,6 +161,9 @@ def test_units():
     def func(a):
         return
     assert func.units == {'a': 'mm'}
+    # Test Operation API
+    op = OperationPlugin(func)
+    assert op.units == {'a': 'mm'}
 
 
 def test_display_name():
@@ -113,28 +171,49 @@ def test_display_name():
     def func(a):
         return
     assert func.name == 'my operation name'
+    # Test Operation API
+    op = OperationPlugin(func)
+    assert op.name == 'my operation name'
 
 
 class TestVisible:
-    def test_default(self):
+    def test_decorator_not_provided(self):
         # TODO: what should this return?
         @output_names('z')
         def func(a):
             return
         # assert func.visible == {'a': True}  # Expects a default to be set regardless
         assert not hasattr(func, 'visible')        # does not expect any defaults to be set; must be explicit
+        # Test Operations API
+        op = OperationPlugin(func)
+        assert op.visible == {}
+
+    def test_default(self):
+        @visible('a')
+        def func(a, b):
+            return
+        assert func.visible == {'a': True}
+        # Test Operations API
+        op = OperationPlugin(func)
+        assert op.visible == {'a': True}
 
     def test_true(self):
         @visible('a', True)
         def func(a, b):
             return
         assert func.visible == {'a': True}
+        # Test Operations API
+        op = OperationPlugin(func)
+        assert op.visible == {'a': True}
 
     def test_false(self):
         @visible('a', False)
         def func(a, b):
             return
         assert func.visible == {'a': False}
+        # Test Operations API
+        op = OperationPlugin(func)
+        assert op.visible == {'a': False}
 
 
 def test_opts():
@@ -143,6 +222,9 @@ def test_opts():
     def func(a, b):
         return
     assert func.opts == {'a': {'someopt': 'opt'}}
+    # Test Operation API
+    op = OperationPlugin(func)
+    assert op.opts == {'a': {'someopt': 'opt'}}
 
 
 def test_as_parameter():
