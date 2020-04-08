@@ -165,21 +165,25 @@ class OperationPlugin:
 
         # Capture any validation issues for use later when raising
         invalid_msg = ""
-        # TODO make this an actual property?
+        # Define which "input" arg properties we want to check
         input_properties = {"fixable": self.fixable,
                             "fixed": self.fixed,
                             "limits": self.limits,
                             "opts": self.opts,
                             "units": self.units,
                             "visible": self.visible}
-
         # Check if all the attributes have a default value for each input param
-        # TODO: Do we want this?
         for arg in self.input_names:
             for name, prop in input_properties.items():
                 if prop and arg not in prop:
-                    ...  # print(f"{name}: {prop}")  # TODO: add invalidation error message.
+                    pass    # Do we want to enforce input default values?
 
+        # Check if there is a 1:1 mapping from user-specified input_names to function args
+        num_names = len(self.input_names)
+        num_args = len(inspect.signature(self._func).parameters.keys())
+        if num_names != num_args:
+            invalid_msg += (f"Number of input_names given ({num_names}) "
+                            f"must match number of inputs for the operation ({num_args}).")
         # Check if there are any input args that are not actually defined in the operation
         # e.g. 'x' is not a valid input in the case below:
         # @visible('x')
@@ -189,8 +193,16 @@ class OperationPlugin:
                 if arg not in self.input_names:
                     invalid_msg += f"\"{arg}\" is not a valid input for \"{name}\". "
 
-        # Check if there are any output args that are not actually defined in the operation
+        # Warn if there are no output_names defined
+        if not len(self.output_names):
+            warning_msg = (f"No output_names have been specified for your operation {self}; "
+                           f"you will not be able to connect your operation's output(s) to "
+                           f"any other operations.")
+            msg.logMessage(warning_msg, level=msg.WARNING)
+
+        # Define which "output" arg properties we want to check
         output_properties = {"output_shape": self.output_shape}
+        # Check if there are any output args that are not actually defined in the operation
         for name, prop in output_properties.items():
             for arg in prop.keys():
                 if arg not in self.output_names:
@@ -447,19 +459,20 @@ def plot_hint(*args, **kwargs):
 
 
 def input_names(*names):
-    # TODO : what happens if we give too many (or not enough) names for number of args into op?
-    # TODO : how does this affect linking (if at all)?
     """Decorator to define input names for the operation.
+
+    The number of names provided must match the number of arguments for the operation/function.
 
     If not provided, input names will be determined by examining the names of the arguments
     to the operation function.
 
     Examples
     --------
-    Create an
+    Create an addition operation and use the names "first" and "second" for the input names
+    instead of the function arg names (x and y).
 
     >>>@OperationPlugin\
-    @input_names("1", "2")\
+    @input_names("first", "second")\
     def my_add(x, y):\
         return x + y
     """
